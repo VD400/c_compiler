@@ -4,9 +4,18 @@
 #include <stdio.h>
 
 typedef enum {
-    NODE_INT, NODE_FLOAT, NODE_ID, NODE_VAR_DECL,
-    NODE_BIN_OP, NODE_ASSIGN, NODE_IF, NODE_WHILE,
-    NODE_PRINT, NODE_STMT_LST, NODE_RETURN
+    NODE_INT,
+    NODE_FLOAT, 
+    NODE_ID, 
+    NODE_VAR_DECL,
+    NODE_BIN_OP, 
+    NODE_ASSIGN, 
+    NODE_IF, 
+    NODE_WHILE,
+    NODE_PRINT, 
+    NODE_SCAN,
+    NODE_STMT_LST, 
+    NODE_RETURN
 } NodeType;
 
 typedef struct ASTNode {
