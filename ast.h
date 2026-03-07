@@ -6,6 +6,8 @@
 typedef enum {
     NODE_INT,
     NODE_FLOAT, 
+    NODE_CHAR,
+    NODE_STR,
     NODE_ID, 
     NODE_VAR_DECL,
     NODE_BIN_OP, 
