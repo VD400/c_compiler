@@ -15,7 +15,9 @@ typedef enum {
     NODE_PRINT, 
     NODE_SCAN,
     NODE_STMT_LST, 
-    NODE_RETURN
+    NODE_RETURN,
+    NODE_BREAK,
+    NODE_CONTINUE
 } NodeType;
 
 typedef struct ASTNode {
