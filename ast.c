@@ -34,6 +34,10 @@ ASTNode* create_while_node(ASTNode* cond, ASTNode* body) {
     return node;
 }
 
+ASTNode* create_io_node(NodeType type, ASTNode* target){
+    return create_node(type, NULL, target, NULL);
+}
+
 // Specialized creator for Variables (e.g., int x)
 ASTNode* create_var_node(char* data_type, char* var_name) {
     ASTNode* node = create_node(NODE_VAR_DECL, var_name, NULL, NULL);
