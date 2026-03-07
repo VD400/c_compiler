@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include "symbol_table.h"
 
 typedef struct Symbol{
     char* name;
@@ -40,6 +41,8 @@ void pop_scope(){
 }
 
 void add_symbol(char* name, char* type){
+    if(current_scope == NULL) 
+        push_scope();
     Symbol* curr = current_scope->symbols;
     while(curr){
         if(strcmp(curr->name, name) == 0){

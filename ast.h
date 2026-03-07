@@ -19,7 +19,10 @@ typedef enum {
     NODE_STMT_LST, 
     NODE_RETURN,
     NODE_BREAK,
-    NODE_CONTINUE
+    NODE_CONTINUE,
+    NODE_BLOCK,      // For { statement_list }
+    NODE_REL_OP,     // For <, >, <=, >=, ==, !=
+    NODE_LOGIC_OP    // For &&, ||
 } NodeType;
 
 typedef struct ASTNode {
@@ -39,5 +42,10 @@ ASTNode* create_if_node(ASTNode* cond, ASTNode* body, ASTNode* else_b);
 ASTNode* create_while_node(ASTNode* cond, ASTNode* body);
 // ADDED: Helper for variable declarations
 ASTNode* create_var_node(char* data_type, char* var_name);
+ASTNode* create_io_node(NodeType type, ASTNode* target);
+ASTNode* create_jump_node(NodeType type, ASTNode* return_value);
+ASTNode* create_block_node(ASTNode* stmt_list);
+void print_ast(ASTNode* node, int level);
+
 
 #endif

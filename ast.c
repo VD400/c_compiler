@@ -8,6 +8,7 @@ ASTNode* create_node(NodeType type, char* value, ASTNode* left, ASTNode* right) 
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if(!node){
         fprintf(stderr,"Error: Memory allocation failed in create_node\n");
+        exit(1);
     }
     node->type = type;
     node->value = value ? strdup(value) : NULL;
@@ -51,6 +52,11 @@ ASTNode* create_jump_node(NodeType type, ASTNode* return_value){
     return node;
 }
 
+ASTNode* create_block_node(ASTNode* stmt_list) {
+    // We use the 'left' pointer to point to the start of the statement list
+    ASTNode* node = create_node(NODE_BLOCK, NULL, stmt_list, NULL);
+    return node;
+}
 
 void print_ast(ASTNode* node, int level) {
     if (node == NULL) return;
