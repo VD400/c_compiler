@@ -46,6 +46,11 @@ ASTNode* create_var_node(char* data_type, char* var_name) {
     return node;
 }
 
+ASTNode* create_jump_node(NodeType type, ASTNode* return_value){
+    ASTNode* node = create_node(type, NULL, return_value, NULL);
+    return node;
+}
+
 
 void print_ast(ASTNode* node, int level) {
     if (node == NULL) return;
@@ -65,6 +70,14 @@ void print_ast(ASTNode* node, int level) {
         for (int i = 0; i < level; i++) printf("  ");
         printf("  [Condition]:\n");
         print_ast(node->condition, level + 2);
+    }
+
+    if(node->else_body){
+        for(int i = 0; i < level; i++){
+            printf("  ");
+        }
+        printf("  [Else Body]:\n");
+        print_ast(node->else_body, level+2);
     }
 
     // Move to the next statement in the block
