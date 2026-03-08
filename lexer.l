@@ -4,8 +4,19 @@
 #include <stdio.h>
 #include <string.h>
 
+extern FILE* token_file; // Access the global file pointer
+
 int line = 1;
 int header_printed = 0;
+
+//void print_header(){
+//    if(!header_printed){
+//        printf("\n%-15s %-15s %-5s\n","LEXEME","TOKEN","LINE");
+//        printf("-------------------------------------\n");
+//        header_printed = 1;
+//    }
+//}
+#define printf(...) do {fprintf(stdout, __VA_ARGS__); fprintf(token_file, __VA_ARGS__); } while(0)
 
 void print_header(){
     if(!header_printed){
@@ -14,6 +25,8 @@ void print_header(){
         header_printed = 1;
     }
 }
+
+
 %}
 
 %option noyywrap

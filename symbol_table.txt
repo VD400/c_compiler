@@ -1,0 +1,38 @@
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] Declared 'x' as int
+ 
+
+    [Symbol Table] Declared 'y' as int
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] is exiting scope
+ 
+
+--- SYMBOL TABLE ---
+Scope level 1:
+  (empty)
+-----------------------------

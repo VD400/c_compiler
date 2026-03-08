@@ -1,5 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "ast.h"
+
+FILE* token_file;
+FILE* ast_file;
+FILE* sym_file;
 
 /* parser */
 extern int yyparse();
@@ -14,6 +19,16 @@ void print_ast(ASTNode* node, int level);
 
 int main()
 {
+    // 1. Open the output files
+    token_file = fopen("tokens.txt", "w");
+    ast_file   = fopen("ast.txt", "w");
+    sym_file   = fopen("symbol_table.txt", "w");
+    
+    if (!token_file || !ast_file || !sym_file) {
+        printf("Error: Could not open output files!\n");
+        return 1;
+    }
+    
     printf("Starting Parsing...\n");
 
     /* Initialize global scope */
@@ -22,8 +37,10 @@ int main()
     if(yyparse() == 0)
     {
         printf("\nParsing successful!\n");
-
+        
         printf("\n--- ABSTRACT SYNTAX TREE ---\n");
+
+        fprintf(ast_file, "\n--- ABSTRACT SYNTAX TREE ---\n");
         print_ast(root,0);
 
         print_symbol_table();
@@ -32,6 +49,10 @@ int main()
     {
         printf("Parsing failed.\n");
     }
+    
+    fclose(token_file);
+    fclose(ast_file);
+    fclose(sym_file);
 
     return 0;
 }

@@ -2,6 +2,10 @@
 #include<stdlib.h>
 #include<string.h>
 #include "symbol_table.h"
+extern FILE* sym_file;
+
+
+#define PRINT_SYM(...) do { fprintf(stdout, __VA_ARGS__); fprintf(sym_file, __VA_ARGS__); } while(0)
 
 typedef struct Symbol{
     char* name;
@@ -21,7 +25,8 @@ void push_scope(){
     new_scope->symbols = NULL;
     new_scope->outer = current_scope;
     current_scope = new_scope;
-    printf("\n    [Symbol Table] is entering new scope\n \n");
+/*    fprintf(sym_file,"\n    [Symbol Table] is entering new scope\n \n");*/
+    PRINT_SYM("\n    [Symbol Table] is entering new scope\n \n");
 }
 
 void pop_scope(){
@@ -37,7 +42,8 @@ void pop_scope(){
         free(temp);
     }
     free(old_scope);
-    printf("\n    [Symbol Table] is exiting scope\n \n");
+/*    fprintf(sym_file,"\n    [Symbol Table] is exiting scope\n \n");*/
+    PRINT_SYM("\n    [Symbol Table] is exiting scope\n \n");
 }
 
 void add_symbol(char* name, char* type){
@@ -56,8 +62,10 @@ void add_symbol(char* name, char* type){
     s->data_type = strdup(type);
     s->next = current_scope->symbols;
     current_scope->symbols = s;
-    printf("\n    [Symbol Table] Declared '%s' as %s\n \n", name, type);
+/*    fprintf(sym_file,"\n    [Symbol Table] Declared '%s' as %s\n \n", name, type);*/
+    PRINT_SYM("\n    [Symbol Table] Declared '%s' as %s\n \n", name, type);
 }
+
 
 Symbol* lookup_symbol(char* name){
     Scope* curr_scope = current_scope;
@@ -73,18 +81,23 @@ Symbol* lookup_symbol(char* name){
 }
 
 void print_symbol_table(){
-    printf("\n--- SYMBOL TABLE ---\n");
+/*    fprintf(sym_file, "\n--- SYMBOL TABLE ---\n");*/
+    PRINT_SYM("\n--- SYMBOL TABLE ---\n");
     Scope* s = current_scope;
     int depth = 0;
     while(s){
-        printf("Scope level %d:\n",depth++);
+/*        fprintf(sym_file,"Scope level %d:\n",depth++);*/
+        PRINT_SYM("Scope level %d:\n",depth++);
         Symbol* sym = s->symbols;
-        if(!sym) printf("  (empty)\n");
+/*        if(!sym) fprintf(sym_file, "  (empty)\n");*/
+        if(!sym) PRINT_SYM("  (empty)\n");
         while(sym){
-            printf("  -> %-10s [%s]\n", sym->name, sym->data_type);
+/*            fprintf(sym_file, "  -> %-10s [%s]\n", sym->name, sym->data_type);*/
+        PRINT_SYM("  -> %-10s [%s]\n", sym->name, sym->data_type);
             sym = sym->next;
         }
         s = s->outer;
     }
-    printf("-----------------------------\n");
+/*    fprintf(sym_file, "-----------------------------\n");*/
+    PRINT_SYM("-----------------------------\n");
 }
