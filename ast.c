@@ -58,6 +58,30 @@ ASTNode* create_block_node(ASTNode* stmt_list) {
     return node;
 }
 
+const char* node_type_to_string(NodeType type){
+    switch(type){
+        case NODE_INT: return "INT";
+        case NODE_FLOAT: return "FLOAT";
+        case NODE_CHAR: return "CHAR";
+        case NODE_STR: return "STRING";
+        case NODE_ID: return "IDENTIFIER";
+        case NODE_VAR_DECL: return "VAR_DECL";
+        case NODE_BIN_OP: return "BINARY_OP";
+        case NODE_ASSIGN: return "ASSIGN";
+        case NODE_IF: return "IF";
+        case NODE_WHILE: return "WHILE";
+        case NODE_PRINT: return "PRINT";
+        case NODE_SCAN: return "SCAN";
+        case NODE_STMT_LST: return "STMT_LIST";
+        case NODE_RETURN: return "RETURN";
+        case NODE_BREAK: return "BREAK";
+        case NODE_CONTINUE: return "CONTINUE";
+        default: return "UNKNOWN";
+    }
+}
+
+
+
 void print_ast(ASTNode* node, int level) {
     if (node == NULL) return;
 

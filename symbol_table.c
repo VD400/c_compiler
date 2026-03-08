@@ -21,7 +21,7 @@ void push_scope(){
     new_scope->symbols = NULL;
     new_scope->outer = current_scope;
     current_scope = new_scope;
-    printf("Symbol Table is entering new scope\n");
+    printf("\n    [Symbol Table] is entering new scope\n \n");
 }
 
 void pop_scope(){
@@ -37,7 +37,7 @@ void pop_scope(){
         free(temp);
     }
     free(old_scope);
-    printf("Symbol Table is exiting scope\n");
+    printf("\n    [Symbol Table] is exiting scope\n \n");
 }
 
 void add_symbol(char* name, char* type){
@@ -56,7 +56,7 @@ void add_symbol(char* name, char* type){
     s->data_type = strdup(type);
     s->next = current_scope->symbols;
     current_scope->symbols = s;
-    printf("Symbol Table Declared '%s' as %s\n", name, type);
+    printf("\n    [Symbol Table] Declared '%s' as %s\n \n", name, type);
 }
 
 Symbol* lookup_symbol(char* name){
