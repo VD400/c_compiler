@@ -50,10 +50,14 @@ ASTNode* root;
 
 %%
 
-program
+    program
     : stmt_list
         {
             root = $1;
+        }
+    | INT ID '(' ')' block
+        {
+            root = $5;
         }
     ;
 
