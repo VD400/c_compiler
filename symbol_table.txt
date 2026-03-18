@@ -8,31 +8,44 @@
     [Symbol Table] Declared 'x' as int
  
 
-    [Symbol Table] Declared 'y' as int
+    [Symbol Table] Declared 'y' as float
  
 
     [Symbol Table] is entering new scope
  
 
+    [Symbol Table] Declared 'z' as int
+ 
+
+[Symbol Table] State before exiting scope:
+
+--- SYMBOL TABLE ---
+Scope level 0:
+  -> z          [int]
+Scope level 1:
+  -> y          [float]
+  -> x          [int]
+Scope level 2:
+  (empty)
+-----------------------------
+
     [Symbol Table] is exiting scope
  
 
-    [Symbol Table] is entering new scope
- 
+[Symbol Table] State before exiting scope:
 
-    [Symbol Table] is exiting scope
- 
-
-    [Symbol Table] is entering new scope
- 
-
-    [Symbol Table] is exiting scope
- 
+--- SYMBOL TABLE ---
+Scope level 0:
+  -> y          [float]
+  -> x          [int]
+Scope level 1:
+  (empty)
+-----------------------------
 
     [Symbol Table] is exiting scope
  
 
 --- SYMBOL TABLE ---
-Scope level 1:
+Scope level 0:
   (empty)
 -----------------------------

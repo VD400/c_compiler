@@ -17,6 +17,9 @@ void print_symbol_table();
 /* AST printer */
 void print_ast(ASTNode* node, int level);
 
+/* semantic analyzer */
+extern char* analyze_semantics(ASTNode* node); // ADDED THIS
+
 int main()
 {
     // 1. Open the output files
@@ -42,6 +45,10 @@ int main()
 
         fprintf(ast_file, "\n--- ABSTRACT SYNTAX TREE ---\n");
         print_ast(root,0);
+        
+        // ADDED THIS: Run the Semantic Analyzer!
+        printf("\n--- SEMANTIC ANALYSIS ---\n");
+        analyze_semantics(root);
 
         print_symbol_table();
     }

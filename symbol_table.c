@@ -7,11 +7,7 @@ extern FILE* sym_file;
 
 #define PRINT_SYM(...) do { fprintf(stdout, __VA_ARGS__); fprintf(sym_file, __VA_ARGS__); } while(0)
 
-typedef struct Symbol{
-    char* name;
-    char* data_type;
-    struct Symbol* next;
-} Symbol;
+
 
 typedef struct Scope{
     Symbol* symbols;
@@ -31,6 +27,10 @@ void push_scope(){
 
 void pop_scope(){
     if(current_scope == NULL) return;
+    
+    
+    PRINT_SYM("\n[Symbol Table] State before exiting scope:\n");
+    print_symbol_table();
     Scope* old_scope = current_scope;
     current_scope = current_scope->outer;
     Symbol* s = old_scope->symbols;
@@ -87,7 +87,8 @@ void print_symbol_table(){
     int depth = 0;
     while(s){
 /*        fprintf(sym_file,"Scope level %d:\n",depth++);*/
-        PRINT_SYM("Scope level %d:\n",depth++);
+        PRINT_SYM("Scope level %d:\n",depth);
+        depth++;
         Symbol* sym = s->symbols;
 /*        if(!sym) fprintf(sym_file, "  (empty)\n");*/
         if(!sym) PRINT_SYM("  (empty)\n");

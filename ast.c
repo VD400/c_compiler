@@ -181,7 +181,17 @@ void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
                 }
             }
             break;
-            
+        case NODE_BLOCK:
+            PRINT_AST("BLOCK\n");
+            if (node->left) {
+                ASTNode* curr = node->left;
+                while (curr) {
+                    int is_last_stmt = (curr->next == NULL);
+                    print_ast_node(curr, new_prefix, is_last_stmt);
+                    curr = curr->next;
+                }
+            }
+            break;    
         default:
             PRINT_AST("UNKNOWN_NODE_TYPE (%d)\n", node->type);
             break;

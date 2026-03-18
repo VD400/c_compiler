@@ -5,10 +5,10 @@
 #include "ast.h"
 
 /* Symbol table functions from symbol_table.c */
-void push_scope();
-void pop_scope();
-void add_symbol(char* name, char* type);
-void print_symbol_table();
+//void push_scope();
+//void pop_scope();
+//void add_symbol(char* name, char* type);
+//void print_symbol_table();
 
 /* Lexer */
 extern int yylex();
@@ -115,36 +115,45 @@ stmt
     | block
         { $$ = $1; }
     ;
+    
 
 block
-    : '{'
+    : '{' stmt_list '}'
         {
-            push_scope();
-        }
-      stmt_list
-      '}'
-        {
-            pop_scope();
-            $$ = $3;
+            $$ = create_block_node($2);
         }
     ;
+
+
+//block
+//    : '{'
+//        {
+//            push_scope();
+//        }
+//      stmt_list
+//      '}'
+//        {
+//            pop_scope();
+//            $$ = $3;
+//        }
+//    ;
 
 declaration
     : INT ID
         {
-            add_symbol($2, "int");
+//            add_symbol($2, "int");
             $$ = create_var_node("int", $2);
         }
 
     | FLOAT_T ID
         {
-            add_symbol($2, "float");
+//            add_symbol($2, "float");
             $$ = create_var_node("float", $2);
         }
 
     | CHAR_T ID
         {
-            add_symbol($2, "char");
+//            add_symbol($2, "char");
             $$ = create_var_node("char", $2);
         }
     ;

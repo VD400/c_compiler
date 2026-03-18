@@ -1,21 +1,18 @@
 int main()
 {
 int x;
-int y;
-
+float y;
+    
 x = 10;
-y = 5;
+y = 5.5;
+    
+{
+    int z;
+    z = x + y; 
+}
+    
+x = y;
 
-if(x > y){
-    print(x);
-}
-else{
-    print(y);
-}
-
-while(x > 0){
-    x = x - 1;
-}
 return 0;
 }
 
