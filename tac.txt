@@ -1,0 +1,10 @@
+
+--- THREE ADDRESS CODE ---
+    declare int a
+    declare int b
+    t0 = 2 + 3
+    a = t0
+    t1 = 4 + 6
+    b = t1
+    print a
+--------------------------

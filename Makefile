@@ -1,28 +1,24 @@
-# Define the compiler and flags
-CC = gcc
+CC     = gcc
 CFLAGS = -Wall -g
 
-# The final executable name
-TARGET = compiler
+SRCS = lex.yy.c parser.tab.c ast.c symbol_table.c semantic.c \
+       tac.c optimizer.c codegen.c main.c
 
-# List of all C source files
-SRCS = lex.yy.c parser.tab.c ast.c symbol_table.c semantic.c main.c
+all: compiler
 
-# Default rule when you just type 'make'
-all: $(TARGET)
+compiler: $(SRCS)
+	$(CC) $(CFLAGS) -o compiler $(SRCS) -lfl
 
-# Rule to link everything into the final executable
-$(TARGET): $(SRCS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
-
-# Rule to run Bison
-parser.tab.c parser.tab.h: parser.y
-	bison -d parser.y
-
-# Rule to run Flex (depends on Bison's header)
 lex.yy.c: lexer.l parser.tab.h
-	flex lexer.l
+	flex -o lex.yy.c lexer.l
 
-# Clean up generated files so you can start fresh
+parser.tab.c parser.tab.h: parser.y
+	bison -d -o parser.tab.c parser.y
+
 clean:
-	rm -f $(TARGET) lex.yy.c parser.tab.c parser.tab.h tokens.txt ast.txt symbol_table.txt
+	rm -f compiler lex.yy.c parser.tab.c parser.tab.h \
+	      tokens.txt ast.txt symbol_table.txt \
+	      tac.txt optimized.txt output.asm
+
+run: compiler
+	./compiler < test.c

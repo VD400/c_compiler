@@ -1,0 +1,15 @@
+
+--- OPTIMIZATION PASSES ---
+  [Constant Folding]    2 instruction(s) folded
+  [Copy Propagation]    0 copy instruction(s) eliminated
+  [Dead Code Elim]      2 dead instruction(s) removed
+  Total: 7 → 5 instructions  (2 removed)
+---------------------------
+
+--- OPTIMIZED THREE ADDRESS CODE ---
+    declare int a
+    declare int b
+    t0 = 5
+    a = t0
+    print a
+------------------------------------

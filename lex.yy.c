@@ -1,5 +1,6 @@
+#line 2 "lex.yy.c"
 
-#line 3 "lex.yy.c"
+#line 4 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -522,9 +523,9 @@ void print_header(){
 }
 
 
-#line 526 "lex.yy.c"
+#line 527 "lex.yy.c"
 #define YY_NO_INPUT 1
-#line 528 "lex.yy.c"
+#line 529 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -742,7 +743,7 @@ YY_DECL
 #line 38 "lexer.l"
 
 
-#line 746 "lex.yy.c"
+#line 747 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -975,7 +976,7 @@ YY_RULE_SETUP
 #line 87 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 979 "lex.yy.c"
+#line 980 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
