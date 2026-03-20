@@ -5,9 +5,6 @@
 #include "optimizer.h"
 #include "codegen.h"
 
-/* -----------------------------------------------------------------------
- * Global file pointers — every stage writes to stdout AND its own file
- * ----------------------------------------------------------------------- */
 FILE* token_file;
 FILE* ast_file;
 FILE* sym_file;
@@ -15,23 +12,23 @@ FILE* tac_file;
 FILE* opt_file;
 FILE* asm_file;
 
-/* parser */
+// parser
 extern int yyparse();
 extern ASTNode* root;
 
-/* symbol table */
+// symbol table
 void push_scope();
 void print_symbol_table();
 
-/* AST printer */
+// AST printer
 void print_ast(ASTNode* node, int level);
 
-/* semantic analyzer */
+// semantic analyzer 
 extern char* analyze_semantics(ASTNode* node);
+extern void  prescan_functions(ASTNode* node);
 
 int main()
 {
-    /* ---- Open all output files ---- */
     token_file = fopen("tokens.txt",       "w");
     ast_file   = fopen("ast.txt",          "w");
     sym_file   = fopen("symbol_table.txt", "w");
@@ -47,7 +44,7 @@ int main()
 
     printf("Starting Parsing...\n");
 
-    /* ---- Stage 0: initialise global scope ---- */
+    // initialise global scope
     push_scope();
 
     if (yyparse() != 0) {
@@ -57,30 +54,31 @@ int main()
 
     printf("\nParsing successful!\n");
 
-    /* ---- Stage 1: Print AST ---- */
+    // Stage 1: Print AST
     printf("\n--- ABSTRACT SYNTAX TREE ---\n");
     fprintf(ast_file, "\n--- ABSTRACT SYNTAX TREE ---\n");
     print_ast(root, 0);
 
-    /* ---- Stage 2: Semantic Analysis ---- */
+    // Stage 2: Semantic Analysis 
     printf("\n--- SEMANTIC ANALYSIS ---\n");
+    prescan_functions(root); // To register all functions first   
     analyze_semantics(root);
     print_symbol_table();
 
-    /* ---- Stage 3: TAC Generation ---- */
+    // Stage 3: TAC Generation
     printf("\n--- INTERMEDIATE CODE GENERATION ---\n");
     TACList* tac = create_tac_list();
     generate_tac(root, tac);
     print_tac(tac);
 
-    /* ---- Stage 4: Optimization ---- */
+    // Stage 4: Optimization
     TACList* optimized = optimize_tac(tac);
 
-    /* ---- Stage 5: x86 Code Generation ---- */
+    // Stage 5: x86 Code Generation
     printf("\n--- CODE GENERATION ---\n");
     generate_code(optimized);
 
-    /* ---- Close all files ---- */
+    // Close all files
     fclose(token_file);
     fclose(ast_file);
     fclose(sym_file);

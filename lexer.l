@@ -4,18 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 
-extern FILE* token_file; // Access the global file pointer
+extern FILE* token_file;
 
 int line = 1;
 int header_printed = 0;
 
-//void print_header(){
-//    if(!header_printed){
-//        printf("\n%-15s %-15s %-5s\n","LEXEME","TOKEN","LINE");
-//        printf("-------------------------------------\n");
-//        header_printed = 1;
-//    }
-//}
 #define printf(...) do {fprintf(stdout, __VA_ARGS__); fprintf(token_file, __VA_ARGS__); } while(0)
 
 void print_header(){
@@ -25,7 +18,6 @@ void print_header(){
         header_printed = 1;
     }
 }
-
 
 %}
 
@@ -39,7 +31,7 @@ FLOAT   {DIGIT}+"."{DIGIT}+
 
 "int"        { print_header(); printf("%-15s %-15s %d\n",yytext,"INT",line); return INT; }
 "float"      { print_header(); printf("%-15s %-15s %d\n",yytext,"FLOAT",line); return FLOAT_T; }
-"char"       { print_header(); printf("%-15s %-15s %d\n",yytext,"CHAR",line); return CHAR_T; }
+"char"       { print_header(); printf("%-15s %-15s %d\n",yytext,"CHAR_T",line); return CHAR_T; }
 
 "if"         { print_header(); printf("%-15s %-15s %d\n",yytext,"IF",line); return IF; }
 "else"       { print_header(); printf("%-15s %-15s %d\n",yytext,"ELSE",line); return ELSE; }
@@ -76,6 +68,17 @@ FLOAT   {DIGIT}+"."{DIGIT}+
 {FLOAT}      { print_header(); printf("%-15s %-15s %d\n",yytext,"FLOAT_LITERAL",line); yylval.str=strdup(yytext); return FLOAT_LITERAL; }
 {DIGIT}+     { print_header(); printf("%-15s %-15s %d\n",yytext,"INT_LITERAL",line); yylval.str=strdup(yytext); return INT_LITERAL; }
 
+\"[^\"]*\"   {
+                print_header();
+                printf("%-15s %-15s %d\n", yytext, "STR_LITERAL", line);
+                char* content = strdup(yytext + 1);
+                content[strlen(content) - 1] = '\0';
+                yylval.str = content;
+                return STR_LITERAL;
+             }
+"&&"         { print_header(); printf("%-15s %-15s %d\n",yytext,"AND",line); return AND; }
+"||"         { print_header(); printf("%-15s %-15s %d\n",yytext,"OR",line);  return OR;  }
+"!"          { print_header(); printf("%-15s %-15s %d\n",yytext,"NOT",line); return NOT; }
 {ID}         { print_header(); printf("%-15s %-15s %d\n",yytext,"ID",line); yylval.str=strdup(yytext); return ID; }
 
 [ \t\r]+     ;

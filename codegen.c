@@ -5,32 +5,46 @@
 #include "codegen.h"
 #include "tac.h"
 
-/* -----------------------------------------------------------------------
- * Dual-output macro
- * ----------------------------------------------------------------------- */
 #define EMIT(...) do { \
     fprintf(stdout,   __VA_ARGS__); \
     fprintf(asm_file, __VA_ARGS__); \
 } while(0)
 
 /* -----------------------------------------------------------------------
- * Symbol map — tracks every variable/temporary that needs a memory slot
- *
- * We use a simple flat array.  For a college-project compiler this is
- * more than sufficient — real compilers use hash tables here.
+ * Symbol map — variables and temporaries → .bss labels
  * ----------------------------------------------------------------------- */
 #define MAX_SYMS 512
 
 typedef struct {
-    char* name;       /* variable or temporary name, e.g. "x" or "t0" */
-    char* asm_label;  /* the label used in the .bss section            */
-    int   is_float;   /* 1 if declared as float, 0 otherwise           */
+    char* name;
+    char* asm_label;
+    int   is_float;
 } SymEntry;
 
 static SymEntry sym_table[MAX_SYMS];
 static int      sym_count = 0;
 
-/* Look up a name; return its asm_label, or NULL if not found */
+/* -----------------------------------------------------------------------
+ * String constant table — for print("hello") style statements
+ * ----------------------------------------------------------------------- */
+#define MAX_STRS 64
+typedef struct { char* text; char* label; } StrEntry;
+static StrEntry str_table[MAX_STRS];
+static int      str_count = 0;
+
+static const char* str_register(const char* text) {
+    for (int i = 0; i < str_count; i++)
+        if (strcmp(str_table[i].text, text) == 0)
+            return str_table[i].label;
+    if (str_count >= MAX_STRS) return "_str_overflow";
+    char label[32];
+    snprintf(label, sizeof(label), "_str%d", str_count);
+    str_table[str_count].text  = strdup(text);
+    str_table[str_count].label = strdup(label);
+    str_count++;
+    return str_table[str_count-1].label;
+}
+
 static const char* sym_lookup(const char* name) {
     for (int i = 0; i < sym_count; i++)
         if (strcmp(sym_table[i].name, name) == 0)
@@ -38,16 +52,12 @@ static const char* sym_lookup(const char* name) {
     return NULL;
 }
 
-/* Register a new name and assign it a unique .bss label */
 static const char* sym_register(const char* name, int is_float) {
     if (sym_lookup(name)) return sym_lookup(name);
     if (sym_count >= MAX_SYMS) {
-        fprintf(stderr, "Codegen Error: symbol table full\n");
-        exit(1);
+        fprintf(stderr, "Codegen Error: symbol table full\n"); exit(1);
     }
     char label[64];
-    /* Use the variable name directly for declared variables;
-       use _tN for compiler temporaries so they don't clash */
     if (name[0] == 't' && isdigit((unsigned char)name[1]))
         snprintf(label, sizeof(label), "_tmp_%s", name);
     else
@@ -61,10 +71,10 @@ static const char* sym_register(const char* name, int is_float) {
 }
 
 /* -----------------------------------------------------------------------
- * Helper: is this string a numeric literal?
+ * Helpers
  * ----------------------------------------------------------------------- */
 static int is_number(const char* s) {
-    if (!s || *s == '\0') return 0;
+    if (!s || !*s) return 0;
     int i = 0, dots = 0;
     if (s[i] == '-') i++;
     for (; s[i]; i++) {
@@ -75,232 +85,221 @@ static int is_number(const char* s) {
 }
 
 static int is_float_literal(const char* s) {
-    if (!is_number(s)) return 0;
-    return strchr(s, '.') != NULL;
+    return is_number(s) && strchr(s, '.') != NULL;
 }
 
-/* Returns 1 if the string looks like a generated label (L0, L1, L23…) */
 static int is_label_name(const char* s) {
     if (!s || s[0] != 'L') return 0;
-    for (int i = 1; s[i] != '\0'; i++)
+    for (int i = 1; s[i]; i++)
         if (!isdigit((unsigned char)s[i])) return 0;
     return s[1] != '\0';
 }
 
 /* -----------------------------------------------------------------------
- * Pre-scan pass — collect all variables and temporaries that appear in
- * the TAC so we can emit .bss reservations before the code section.
- * Also pre-scan DECLARE instructions to know which names are floats.
+ * Pre-scan — register every variable/temporary in .bss
  * ----------------------------------------------------------------------- */
 static void prescan(TACList* list) {
-    /* First pass: handle declarations to get type info */
-    for (TACInstr* cur = list->head; cur; cur = cur->next) {
-        if (cur->op == TAC_DECLARE && cur->result && cur->arg1) {
-            int is_float = (strcmp(cur->arg1, "float") == 0);
-            sym_register(cur->result, is_float);
-        }
-    }
+    /* First pass: declared variables */
+    for (TACInstr* c = list->head; c; c = c->next)
+        if (c->op == TAC_DECLARE && c->result && c->arg1)
+            sym_register(c->result, strcmp(c->arg1, "float") == 0);
 
-    /* Second pass: register anything else that's not a literal or label.
-     * Skip:  TAC_LABEL  (definition of a label)
-     *        TAC_GOTO   (target is a label name, not a variable)
-     *        TAC_DECLARE (already handled above)
-     *        IF_FALSE result field (that's the jump target label, not a var) */
-    for (TACInstr* cur = list->head; cur; cur = cur->next) {
-        /* result field — skip labels, gotos, declares, and label-name strings */
-        if (cur->result
-            && cur->op != TAC_LABEL
-            && cur->op != TAC_GOTO
-            && cur->op != TAC_DECLARE
-            && cur->op != TAC_IF_FALSE) {   /* IF_FALSE result = jump target */
-            if (!is_number(cur->result)
-                && !is_label_name(cur->result)
-                && !sym_lookup(cur->result))
-                sym_register(cur->result, 0);
+    /* Second pass: register string literals from print("...") statements */
+    for (TACInstr* c = list->head; c; c = c->next)
+        if (c->op == TAC_PRINT && c->result && !c->arg1)
+            str_register(c->result);
+
+    /* Third pass: everything else (temps, etc.) */
+    for (TACInstr* c = list->head; c; c = c->next) {
+        if (c->result
+            && c->op != TAC_LABEL && c->op != TAC_GOTO
+            && c->op != TAC_DECLARE && c->op != TAC_IF_FALSE
+            && c->op != TAC_FUNC_BEGIN && c->op != TAC_FUNC_END
+            && !(c->op == TAC_PRINT && !c->arg1)) {
+            if (!is_number(c->result) && !is_label_name(c->result)
+                && !sym_lookup(c->result))
+                sym_register(c->result, 0);
         }
-        /* arg1 field */
-        if (cur->arg1
-            && cur->op != TAC_DECLARE) {
-            if (!is_number(cur->arg1)
-                && !is_label_name(cur->arg1)
-                && !sym_lookup(cur->arg1))
-                sym_register(cur->arg1, 0);
+        if (c->arg1 && c->op != TAC_DECLARE
+            && c->op != TAC_FUNC_BEGIN && c->op != TAC_FUNC_END
+            && c->op != TAC_PARAM && c->op != TAC_CALL) {
+            if (!is_number(c->arg1) && !is_label_name(c->arg1)
+                && !sym_lookup(c->arg1))
+                sym_register(c->arg1, 0);
         }
-        /* arg2 field */
-        if (cur->arg2) {
-            if (!is_number(cur->arg2)
-                && !is_label_name(cur->arg2)
-                && !sym_lookup(cur->arg2))
-                sym_register(cur->arg2, 0);
+        if (c->arg2 && c->op != TAC_CALL) {
+            if (!is_number(c->arg2) && !is_label_name(c->arg2)
+                && !sym_lookup(c->arg2))
+                sym_register(c->arg2, 0);
         }
     }
 }
 
 /* -----------------------------------------------------------------------
- * Emit a value into eax
- *
- * If the operand is a numeric literal  →  movl $value, %eax
- * If it is a known variable/temp        →  movl label, %eax
+ * Load / store helpers
  * ----------------------------------------------------------------------- */
-static void load_to_eax(const char* operand) {
-    if (!operand) return;
-    if (is_number(operand)) {
-        /* Convert float literals to integer representation for integer regs */
-        if (is_float_literal(operand)) {
-            long long iv = (long long)atof(operand);
-            EMIT("    movl    $%lld, %%eax\n", iv);
-        } else {
-            EMIT("    movl    $%s, %%eax\n", operand);
-        }
+static void load_to_eax(const char* op) {
+    if (!op) return;
+    if (is_number(op)) {
+        long long v = is_float_literal(op) ? (long long)atof(op) : atoll(op);
+        EMIT("    movl    $%lld, %%eax\n", v);
     } else {
-        const char* lbl = sym_lookup(operand);
+        const char* lbl = sym_lookup(op);
         if (lbl) EMIT("    movl    %s, %%eax\n", lbl);
-        else     EMIT("    movl    $0, %%eax          # unknown: %s\n", operand);
+        else     EMIT("    movl    $0, %%eax          # unknown: %s\n", op);
     }
 }
 
-/* Emit a value into ebx */
-static void load_to_ebx(const char* operand) {
-    if (!operand) return;
-    if (is_number(operand)) {
-        if (is_float_literal(operand)) {
-            long long iv = (long long)atof(operand);
-            EMIT("    movl    $%lld, %%ebx\n", iv);
-        } else {
-            EMIT("    movl    $%s, %%ebx\n", operand);
-        }
+static void load_to_ebx(const char* op) {
+    if (!op) return;
+    if (is_number(op)) {
+        long long v = is_float_literal(op) ? (long long)atof(op) : atoll(op);
+        EMIT("    movl    $%lld, %%ebx\n", v);
     } else {
-        const char* lbl = sym_lookup(operand);
+        const char* lbl = sym_lookup(op);
         if (lbl) EMIT("    movl    %s, %%ebx\n", lbl);
-        else     EMIT("    movl    $0, %%ebx          # unknown: %s\n", operand);
+        else     EMIT("    movl    $0, %%ebx          # unknown: %s\n", op);
     }
 }
 
-/* Store eax into the memory slot for a name */
 static void store_from_eax(const char* name) {
     if (!name) return;
     const char* lbl = sym_lookup(name);
-    if (!lbl) {
-        sym_register(name, 0);
-        lbl = sym_lookup(name);
-    }
+    if (!lbl) { sym_register(name, 0); lbl = sym_lookup(name); }
     EMIT("    movl    %%eax, %s\n", lbl);
 }
 
 /* -----------------------------------------------------------------------
- * Emit the binary operation currently in eax (left) and ebx (right)
- * Result lands in eax.
- *
- * Arithmetic:   ADD, SUB, IMUL, IDIV
- * Relational:   CMP + SETcc → result is 0 or 1 in eax
+ * Binary operator emission
  * ----------------------------------------------------------------------- */
-static void emit_binop(const char* op) {
+static void emit_binop_asm(const char* op) {
     if (!op) return;
-
-    if (strcmp(op, "+") == 0) {
-        EMIT("    addl    %%ebx, %%eax\n");
-
-    } else if (strcmp(op, "-") == 0) {
-        EMIT("    subl    %%ebx, %%eax\n");
-
-    } else if (strcmp(op, "*") == 0) {
-        EMIT("    imull   %%ebx, %%eax\n");
-
-    } else if (strcmp(op, "/") == 0) {
-        /* idivl divides edx:eax by the operand; quotient → eax */
-        EMIT("    movl    %%ebx, %%ecx\n");   /* save divisor */
-        EMIT("    cdq\n");                     /* sign-extend eax into edx */
-        EMIT("    idivl   %%ecx\n");           /* eax = eax / ecx */
-
-    } else if (strcmp(op, "<") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
-        EMIT("    setl    %%al\n");
-        EMIT("    movzbl  %%al, %%eax\n");
-
-    } else if (strcmp(op, ">") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
-        EMIT("    setg    %%al\n");
-        EMIT("    movzbl  %%al, %%eax\n");
-
-    } else if (strcmp(op, "<=") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
-        EMIT("    setle   %%al\n");
-        EMIT("    movzbl  %%al, %%eax\n");
-
-    } else if (strcmp(op, ">=") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
-        EMIT("    setge   %%al\n");
-        EMIT("    movzbl  %%al, %%eax\n");
-
-    } else if (strcmp(op, "==") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
-        EMIT("    sete    %%al\n");
-        EMIT("    movzbl  %%al, %%eax\n");
-
-    } else if (strcmp(op, "!=") == 0) {
-        EMIT("    cmpl    %%ebx, %%eax\n");
+    if      (!strcmp(op,"+"))  { EMIT("    addl    %%ebx, %%eax\n"); }
+    else if (!strcmp(op,"-"))  { EMIT("    subl    %%ebx, %%eax\n"); }
+    else if (!strcmp(op,"*"))  { EMIT("    imull   %%ebx, %%eax\n"); }
+    else if (!strcmp(op,"/"))  {
+        EMIT("    movl    %%ebx, %%ecx\n");
+        EMIT("    cdq\n");
+        EMIT("    idivl   %%ecx\n");
+    }
+    else if (!strcmp(op,"<"))  { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    setl    %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,">"))  { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    setg    %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,"<=")) { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    setle   %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,">=")) { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    setge   %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,"==")) { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    sete    %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,"!=")) { EMIT("    cmpl    %%ebx, %%eax\n"); EMIT("    setne   %%al\n"); EMIT("    movzbl  %%al, %%eax\n"); }
+    else if (!strcmp(op,"&&")) {
+        EMIT("    testl   %%eax, %%eax\n");
         EMIT("    setne   %%al\n");
         EMIT("    movzbl  %%al, %%eax\n");
-
-    } else {
-        EMIT("    # Unknown operator: %s\n", op);
+        EMIT("    testl   %%ebx, %%ebx\n");
+        EMIT("    setne   %%bl\n");
+        EMIT("    movzbl  %%bl, %%ebx\n");
+        EMIT("    andl    %%ebx, %%eax\n");
     }
+    else if (!strcmp(op,"||")) {
+        EMIT("    testl   %%eax, %%eax\n");
+        EMIT("    setne   %%al\n");
+        EMIT("    movzbl  %%al, %%eax\n");
+        EMIT("    testl   %%ebx, %%ebx\n");
+        EMIT("    setne   %%bl\n");
+        EMIT("    movzbl  %%bl, %%ebx\n");
+        EMIT("    orl     %%ebx, %%eax\n");
+    }
+    else EMIT("    # unknown op: %s\n", op);
 }
+
+/* -----------------------------------------------------------------------
+ * Track current function name
+ * ----------------------------------------------------------------------- */
+static char current_func[128] = "main";
 
 /* -----------------------------------------------------------------------
  * Main code generator
  * ----------------------------------------------------------------------- */
 void generate_code(TACList* list) {
-
-    /* ---- Pre-scan to collect all symbols ---- */
     prescan(list);
 
-    EMIT("\n--- X86 ASSEMBLY OUTPUT ---\n\n");
+    fprintf(stdout, "\n--- X86 ASSEMBLY OUTPUT ---\n\n");
 
-    /* ================================================================
-     * .data section — format strings for print / scan
-     * ================================================================ */
+    /* ---- .data section ---- */
     EMIT(".section .data\n");
     EMIT("    fmt_int:   .string \"%%d\\n\"\n");
     EMIT("    fmt_float: .string \"%%f\\n\"\n");
     EMIT("    fmt_scan:  .string \"%%d\"\n");
+    for (int i = 0; i < str_count; i++)
+        EMIT("    %s: .string \"%s\\n\"\n",
+             str_table[i].label, str_table[i].text);
     EMIT("\n");
 
-    /* ================================================================
-     * .bss section — one DWORD slot per variable / temporary
-     * ================================================================ */
+    /* ---- .bss section ---- */
     EMIT(".section .bss\n");
-    for (int i = 0; i < sym_count; i++) {
+    for (int i = 0; i < sym_count; i++)
         EMIT("    %s: .space 4\n", sym_table[i].asm_label);
-    }
     EMIT("\n");
 
-    /* ================================================================
-     * .text section — the actual instructions
-     * ================================================================ */
+    /* ---- .text section ---- */
     EMIT(".section .text\n");
     EMIT(".globl main\n");
-    EMIT("main:\n");
-    EMIT("    pushl   %%ebp\n");
-    EMIT("    movl    %%esp, %%ebp\n");
-    EMIT("\n");
 
-    /* ================================================================
-     * Translate each TAC instruction
-     * ================================================================ */
+    /* Check if there are any function definitions */
+    int has_func = 0;
+    for (TACInstr* c = list->head; c; c = c->next)
+        if (c->op == TAC_FUNC_BEGIN) { has_func = 1; break; }
+
+    /* No functions — emit main: prologue immediately */
+    if (!has_func) {
+        EMIT("main:\n");
+        EMIT("    pushl   %%ebp\n");
+        EMIT("    movl    %%esp, %%ebp\n");
+        EMIT("\n");
+    }
+
+    /* Track whether we have emitted main: yet */
+    int main_emitted = has_func ? 0 : 1;
+
+    /* ----------------------------------------------------------------
+     * Translate instructions
+     * ---------------------------------------------------------------- */
     for (TACInstr* cur = list->head; cur; cur = cur->next) {
 
         switch (cur->op) {
 
-            /* ---- DECLARE: nothing to emit — already in .bss ---- */
+            case TAC_FUNC_BEGIN:
+                strncpy(current_func, cur->result, sizeof(current_func)-1);
+                EMIT("\n%s:\n", cur->result);
+                EMIT("    pushl   %%ebp\n");
+                EMIT("    movl    %%esp, %%ebp\n");
+                EMIT("\n");
+                break;
+
+            case TAC_FUNC_END:
+                EMIT("    # end of function %s\n", cur->result);
+                EMIT("    movl    $0, %%eax\n");
+                EMIT("    movl    %%ebp, %%esp\n");
+                EMIT("    popl    %%ebp\n");
+                EMIT("    ret\n\n");
+                /* After the last function definition, emit main: for
+                 * the global statements that follow */
+                if (!main_emitted) {
+                    int next_is_func = (cur->next &&
+                                        cur->next->op == TAC_FUNC_BEGIN);
+                    if (!next_is_func) {
+                        EMIT("main:\n");
+                        EMIT("    pushl   %%ebp\n");
+                        EMIT("    movl    %%esp, %%ebp\n");
+                        EMIT("\n");
+                        main_emitted = 1;
+                    }
+                }
+                break;
+
             case TAC_DECLARE:
                 EMIT("    # declare %s %s\n",
                      cur->arg1 ? cur->arg1 : "",
                      cur->result ? cur->result : "");
                 break;
 
-            /* ---- ASSIGN: result = arg1 ---- */
-            /*   load arg1 → eax, store eax → result                */
             case TAC_ASSIGN:
                 EMIT("    # %s = %s\n",
                      cur->result ? cur->result : "",
@@ -309,8 +308,6 @@ void generate_code(TACList* list) {
                 store_from_eax(cur->result);
                 break;
 
-            /* ---- BIN_OP: result = arg1 op arg2 ---- */
-            /*   load arg1 → eax, arg2 → ebx, apply op, store eax  */
             case TAC_BIN_OP:
                 EMIT("    # %s = %s %s %s\n",
                      cur->result ? cur->result : "",
@@ -319,56 +316,58 @@ void generate_code(TACList* list) {
                      cur->arg2   ? cur->arg2   : "");
                 load_to_eax(cur->arg1);
                 load_to_ebx(cur->arg2);
-                emit_binop(cur->op_str);
+                emit_binop_asm(cur->op_str);
                 store_from_eax(cur->result);
                 break;
 
-            /* ---- LABEL: emit a jump target ---- */
             case TAC_LABEL:
-                EMIT("%s:\n", cur->result ? cur->result : "L_unknown");
+                EMIT("%s:\n", cur->result ? cur->result : "");
                 break;
 
-            /* ---- GOTO: unconditional jump ---- */
             case TAC_GOTO:
                 EMIT("    jmp     %s\n", cur->result ? cur->result : "");
                 break;
 
-            /* ---- IF_FALSE: conditional jump ---- */
-            /*   if_false cond goto label                            */
-            /*   load cond → eax, test eax, jump if zero            */
             case TAC_IF_FALSE:
                 EMIT("    # if_false %s goto %s\n",
-                     cur->arg1   ? cur->arg1   : "",
+                     cur->arg1 ? cur->arg1 : "",
                      cur->result ? cur->result : "");
                 load_to_eax(cur->arg1);
                 EMIT("    testl   %%eax, %%eax\n");
                 EMIT("    je      %s\n", cur->result ? cur->result : "");
                 break;
 
-            /* ---- PRINT: call printf with the value ---- */
-            /*   We push the value and the format string, call printf */
             case TAC_PRINT:
-                EMIT("    # print %s\n", cur->arg1 ? cur->arg1 : "");
-                load_to_eax(cur->arg1);
-                EMIT("    pushl   %%eax\n");
-                EMIT("    pushl   $fmt_int\n");
-                EMIT("    call    printf\n");
-                EMIT("    addl    $8, %%esp\n");   /* clean up 2 args × 4 bytes */
+                if (cur->result && !cur->arg1) {
+                    const char* slbl = str_register(cur->result);
+                    EMIT("    # print \"%s\"\n", cur->result);
+                    EMIT("    pushl   $%s\n", slbl);
+                    EMIT("    call    printf\n");
+                    EMIT("    addl    $4, %%esp\n");
+                } else {
+                    EMIT("    # print %s\n", cur->arg1 ? cur->arg1 : "");
+                    load_to_eax(cur->arg1);
+                    EMIT("    pushl   %%eax\n");
+                    EMIT("    pushl   $fmt_int\n");
+                    EMIT("    call    printf\n");
+                    EMIT("    addl    $8, %%esp\n");
+                }
                 break;
 
-            /* ---- SCAN: call scanf to read into a variable ---- */
             case TAC_SCAN: {
                 EMIT("    # scan %s\n", cur->result ? cur->result : "");
                 const char* lbl = sym_lookup(cur->result);
-                if (!lbl) { sym_register(cur->result, 0); lbl = sym_lookup(cur->result); }
-                EMIT("    pushl   $%s\n", lbl);    /* address of the variable */
+                if (!lbl) {
+                    sym_register(cur->result, 0);
+                    lbl = sym_lookup(cur->result);
+                }
+                EMIT("    pushl   $%s\n", lbl);
                 EMIT("    pushl   $fmt_scan\n");
                 EMIT("    call    scanf\n");
                 EMIT("    addl    $8, %%esp\n");
                 break;
             }
 
-            /* ---- RETURN: load value into eax and return ---- */
             case TAC_RETURN:
                 EMIT("    # return %s\n", cur->arg1 ? cur->arg1 : "");
                 if (cur->arg1) load_to_eax(cur->arg1);
@@ -377,17 +376,34 @@ void generate_code(TACList* list) {
                 EMIT("    popl    %%ebp\n");
                 EMIT("    ret\n");
                 break;
+
+            case TAC_PARAM:
+                EMIT("    # param %s\n", cur->arg1 ? cur->arg1 : "");
+                load_to_eax(cur->arg1);
+                EMIT("    pushl   %%eax\n");
+                break;
+
+            case TAC_CALL: {
+                int argc = cur->arg2 ? atoi(cur->arg2) : 0;
+                EMIT("    # %s = call %s %d\n",
+                     cur->result ? cur->result : "_",
+                     cur->arg1   ? cur->arg1   : "?",
+                     argc);
+                EMIT("    call    %s\n", cur->arg1 ? cur->arg1 : "");
+                if (argc > 0)
+                    EMIT("    addl    $%d, %%esp\n", argc * 4);
+                if (cur->result) store_from_eax(cur->result);
+                break;
+            }
         }
 
         EMIT("\n");
     }
 
-    /* ================================================================
-     * Function epilogue — in case execution falls off the end
-     * ================================================================ */
+    /* Final epilogue for main */
     EMIT("    movl    $0, %%eax\n");
     EMIT("    movl    %%ebp, %%esp\n");
     EMIT("    popl    %%ebp\n");
     EMIT("    ret\n");
-    EMIT("\n---------------------------\n");
+    fprintf(stdout, "\n---------------------------\n");
 }

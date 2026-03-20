@@ -4,181 +4,201 @@
 #include "ast.h"
 #include "symbol_table.h"
 
-// Helper function signature
+/* Forward declaration */
 char* analyze_semantics(ASTNode* node);
 
+/* -----------------------------------------------------------------------
+ * prescan_functions — PASS 1
+ *
+ * Walk only the top-level node list and register every function
+ * definition into the function table BEFORE the main analysis runs.
+ * This means functions can be called before they are defined in the
+ * source file (standard C behaviour).
+ *
+ * This is called from main.c before analyze_semantics().
+ * ----------------------------------------------------------------------- */
+void prescan_functions(ASTNode* node) {
+    ASTNode* cur = node;
+    while (cur) {
+        if (cur->type == NODE_FUNC_DEF) {
+            /* Build the parameter info list */
+            ParamInfo* param_list = NULL;
+            ParamInfo* param_tail = NULL;
+            int param_count = 0;
+
+            ASTNode* p = cur->params;
+            while (p) {
+                ParamInfo* pi  = (ParamInfo*)malloc(sizeof(ParamInfo));
+                pi->name       = strdup(p->value);
+                pi->data_type  = strdup(p->data_type);
+                pi->next       = NULL;
+                if (!param_list) { param_list = param_tail = pi; }
+                else             { param_tail->next = pi; param_tail = pi; }
+                param_count++;
+                p = p->next;
+            }
+
+            add_function(cur->value, cur->data_type, param_list, param_count);
+        }
+        cur = cur->next;
+    }
+}
+
+/* -----------------------------------------------------------------------
+ * analyze_semantics — PASS 2
+ *
+ * Full recursive semantic analysis. By the time this runs, all function
+ * signatures are already in the function table from prescan_functions().
+ * ----------------------------------------------------------------------- */
 char* analyze_semantics(ASTNode* node) {
-    if (node == NULL) return NULL;
+    if (!node) return NULL;
 
     char* return_type = NULL;
 
     switch (node->type) {
-        // --- 1. DECLARATIONS & VARIABLES ---
+
+        /* ---- Variable declaration ---- */
         case NODE_VAR_DECL:
-            // Add to symbol table and return its type
             add_symbol(node->value, node->data_type);
             return_type = node->data_type;
             break;
 
+        /* ---- Identifier use ---- */
         case NODE_ID: {
-            // Verify it exists in the symbol table
             Symbol* sym = lookup_symbol(node->value);
-            if (sym == NULL) {
-                fprintf(stderr, "Semantic Error: Variable '%s' not declared before use.\n", node->value);
+            if (!sym) {
+                fprintf(stderr,
+                    "Semantic Error: Variable '%s' not declared before use.\n",
+                    node->value);
                 exit(1);
             }
             return_type = sym->data_type;
             break;
         }
 
-        // --- 2. LITERALS (Base cases for recursion) ---
-        case NODE_INT:   return_type = "int"; break;
-        case NODE_FLOAT: return_type = "float"; break;
-        case NODE_CHAR:  return_type = "char"; break;
+        /* ---- Literals ---- */
+        case NODE_INT:   return_type = "int";    break;
+        case NODE_FLOAT: return_type = "float";  break;
+        case NODE_CHAR:  return_type = "char";   break;
         case NODE_STR:   return_type = "string"; break;
 
-        // --- 3. ASSIGNMENT & TYPE CHECKING ---
+        /* ---- Assignment ---- */
         case NODE_ASSIGN: {
-            // Check if the variable on the left exists
-            Symbol* sym = lookup_symbol(node->left->value); 
-            if (sym == NULL) {
-                fprintf(stderr, "Semantic Error: Assignment to undeclared variable '%s'\n", node->left->value);
+            Symbol* sym = lookup_symbol(node->left->value);
+            if (!sym) {
+                fprintf(stderr,
+                    "Semantic Error: Assignment to undeclared variable '%s'\n",
+                    node->left->value);
                 exit(1);
             }
-            
-            // Get the type of the mathematical expression on the right
-            char* right_type = analyze_semantics(node->right);
-            
-            // Perform Type Checking
-            if (right_type != NULL && strcmp(sym->data_type, right_type) != 0) {
-                fprintf(stderr, "Warning: Type mismatch in assignment. Assigning '%s' to '%s' variable '%s'\n", 
-                        right_type, sym->data_type, sym->name);
-            }
+            char* rtype = analyze_semantics(node->right);
+            if (rtype && strcmp(sym->data_type, rtype) != 0)
+                fprintf(stderr,
+                    "Warning: Type mismatch — assigning '%s' to '%s' variable '%s'\n",
+                    rtype, sym->data_type, sym->name);
             return_type = sym->data_type;
             break;
         }
 
+        /* ---- Binary operation ---- */
         case NODE_BIN_OP: {
-            char* left_type = analyze_semantics(node->left);
-            char* right_type = analyze_semantics(node->right);
-            
-            // Basic type coercion: if either side is a float, the result is a float
-            if (left_type && right_type) {
-                if (strcmp(left_type, "float") == 0 || strcmp(right_type, "float") == 0) {
-                    return_type = "float";
-                } else {
-                    return_type = "int";
-                }
-            }
+            char* lt = analyze_semantics(node->left);
+            char* rt = analyze_semantics(node->right);
+            if (lt && rt)
+                return_type = (strcmp(lt,"float")==0 || strcmp(rt,"float")==0)
+                              ? "float" : "int";
             break;
         }
 
-        // --- 4. SCOPE MANAGEMENT & CONTROL FLOW ---
+        /* ---- Block: new scope ---- */
         case NODE_BLOCK:
-            // Create a new scope for the `{ ... }` block
             push_scope();
-            analyze_semantics(node->left); // Traverse the statements inside the block
+            analyze_semantics(node->left);
             pop_scope();
             break;
 
+        /* ---- If / while ---- */
         case NODE_IF:
             analyze_semantics(node->condition);
-            analyze_semantics(node->left);      // True block
-            if (node->else_body) {
-                analyze_semantics(node->else_body); // Else block
-            }
+            analyze_semantics(node->left);
+            if (node->else_body) analyze_semantics(node->else_body);
             break;
 
         case NODE_WHILE:
             analyze_semantics(node->condition);
-            analyze_semantics(node->left);      // Loop body
+            analyze_semantics(node->left);
             break;
 
-        // --- 5. BUILT-IN FUNCTIONS & JUMPS ---
+        /* ---- I/O and jumps ---- */
         case NODE_PRINT:
         case NODE_SCAN:
         case NODE_RETURN:
-            // Just check the expressions inside them
             analyze_semantics(node->left);
             break;
 
         case NODE_BREAK:
         case NODE_CONTINUE:
-            // Nothing to check for simple jumps
             break;
 
+        /* ---- Function definition ---- */
+        /* prescan_functions() already registered this function.
+         * Here we only need to analyse the body in a new scope
+         * with the parameters added as local variables.          */
+        case NODE_FUNC_DEF: {
+            push_scope();
+            /* Add each parameter as a local variable */
+            ASTNode* p = node->params;
+            while (p) {
+                add_symbol(p->value, p->data_type);
+                p = p->next;
+            }
+            /* Analyse the function body */
+            analyze_semantics(node->left);
+            pop_scope();
+            break;
+        }
+
+        /* ---- Function call ---- */
+        case NODE_FUNC_CALL: {
+            FuncSymbol* func = lookup_function(node->value);
+            if (!func) {
+                fprintf(stderr,
+                    "Semantic Error: Call to undefined function '%s'\n",
+                    node->value);
+                exit(1);
+            }
+
+            /* Count arguments */
+            int argc = 0;
+            ASTNode* arg = node->args;
+            while (arg) { argc++; arg = arg->next; }
+
+            if (argc != func->param_count) {
+                fprintf(stderr,
+                    "Semantic Error: Function '%s' expects %d argument(s), got %d\n",
+                    node->value, func->param_count, argc);
+                exit(1);
+            }
+
+            /* Analyse each argument expression */
+            arg = node->args;
+            while (arg) {
+                analyze_semantics(arg);
+                arg = arg->next;
+            }
+
+            return_type = func->return_type;
+            break;
+        }
+
         default:
-            // Fallback for any unhandled node types
             analyze_semantics(node->left);
             analyze_semantics(node->right);
             break;
     }
 
-    // Traverse to the next statement in the current block
-    if (node->next) {
-        analyze_semantics(node->next);
-    }
+    /* Move to the next statement in the current block */
+    if (node->next) analyze_semantics(node->next);
 
     return return_type;
 }
-
-
-
-
-/*#include <stdio.h>*/
-/*#include <stdlib.h>*/
-/*#include "ast.h"*/
-/*#include "symbol_table.h"*/
-
-/*void analyze_semantics(ASTNode* node)*/
-/*{*/
-/*    if(node == NULL)*/
-/*        return;*/
-
-/*    switch(node->type)*/
-/*    {*/
-
-/*        case NODE_VAR_DECL:*/
-/*            add_symbol(node->value, node->data_type);*/
-/*            break;*/
-
-/*        case NODE_ID:*/
-/*            if(lookup_symbol(node->value) == NULL){*/
-/*                fprintf(stderr,"Semantic Error: %s not declared\n",node->value);*/
-/*                exit(1);*/
-/*            }*/
-/*            break;*/
-
-/*        case NODE_ASSIGN:*/
-/*            analyze_semantics(node->left);*/
-/*            analyze_semantics(node->right);*/
-/*            break;*/
-
-/*        case NODE_BLOCK:*/
-/*            push_scope();*/
-/*            analyze_semantics(node->left);*/
-/*            pop_scope();*/
-/*            break;*/
-
-/*        case NODE_IF:*/
-/*        case NODE_WHILE:*/
-
-/*            analyze_semantics(node->condition);*/
-/*            analyze_semantics(node->left);*/
-/*            analyze_semantics(node->else_body);*/
-/*            break;*/
-
-/*        case NODE_STMT_LST:*/
-
-/*            analyze_semantics(node->left);*/
-/*            break;*/
-
-/*        default:*/
-
-/*            analyze_semantics(node->left);*/
-/*            analyze_semantics(node->right);*/
-/*            break;*/
-/*    }*/
-
-/*    analyze_semantics(node->next);*/
-/*}*/

@@ -22,3 +22,11 @@ clean:
 
 run: compiler
 	./compiler < test.c
+
+build: compiler
+	./compiler < test.c
+	cp output.asm output.s
+	gcc -m32 output.s -o myprogram -no-pie
+
+execute: build
+	./myprogram

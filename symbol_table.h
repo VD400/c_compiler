@@ -1,37 +1,39 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
-// Fully define the struct here so semantic.c can access sym->data_type
+/* ---- Variable symbol ---- */
 typedef struct Symbol {
     char* name;
     char* data_type;
     struct Symbol* next;
 } Symbol;
 
-void push_scope();
-void pop_scope();
+/* ---- Parameter descriptor (for function signatures) ---- */
+typedef struct ParamInfo {
+    char* name;
+    char* data_type;
+    struct ParamInfo* next;
+} ParamInfo;
 
-void add_symbol(char* name, char* type);
+/* ---- Function symbol ---- */
+typedef struct FuncSymbol {
+    char*       name;
+    char*       return_type;
+    int         param_count;
+    ParamInfo*  params;          /* linked list of ParamInfo */
+    struct FuncSymbol* next;
+} FuncSymbol;
+
+/* Variable scope API */
+void    push_scope(void);
+void    pop_scope(void);
+void    add_symbol(char* name, char* type);
 Symbol* lookup_symbol(char* name);
+void    print_symbol_table(void);
 
-void print_symbol_table();
+/* Function registry API */
+void        add_function(char* name, char* return_type,
+                         ParamInfo* params, int param_count);
+FuncSymbol* lookup_function(char* name);
 
 #endif
-
-
-
-
-/*#ifndef SYMBOL_TABLE_H*/
-/*#define SYMBOL_TABLE_H*/
-
-/*typedef struct Symbol Symbol;*/
-
-/*void push_scope();*/
-/*void pop_scope();*/
-
-/*void add_symbol(char* name, char* type);*/
-/*Symbol* lookup_symbol(char* name);*/
-
-/*void print_symbol_table();*/
-
-/*#endif*/

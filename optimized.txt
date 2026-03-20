@@ -1,15 +1,45 @@
 
 --- OPTIMIZATION PASSES ---
-  [Constant Folding]    2 instruction(s) folded
+  [Constant Folding]    0 instruction(s) folded
   [Copy Propagation]    0 copy instruction(s) eliminated
-  [Dead Code Elim]      2 dead instruction(s) removed
-  Total: 7 → 5 instructions  (2 removed)
+  [Dead Code Elim]      0 dead instruction(s) removed
+  Total: 31 → 31 instructions  (0 removed)
 ---------------------------
 
 --- OPTIMIZED THREE ADDRESS CODE ---
+
+func_begin add
     declare int a
     declare int b
-    t0 = 5
-    a = t0
-    print a
+    t0 = a + b
+    return t0
+func_end add
+
+
+func_begin multiply
+    declare int a
+    declare int b
+    t1 = a * b
+    return t1
+func_end multiply
+
+    declare int result
+    declare int a
+    declare int b
+    print "Enter first number"
+    scan a
+    print "Enter second number"
+    scan b
+    param a
+    param b
+    t2 = call add 2
+    result = t2
+    print "Sum is"
+    print result
+    param a
+    param b
+    t3 = call multiply 2
+    result = t3
+    print "Product is"
+    print result
 ------------------------------------

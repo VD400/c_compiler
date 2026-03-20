@@ -2,6 +2,95 @@
     [Symbol Table] is entering new scope
  
 
+    [Function Table] Registered 'add' returning int (2 param(s))
+ 
+
+    [Function Table] Registered 'multiply' returning int (2 param(s))
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] Declared 'a' as int
+ 
+
+    [Symbol Table] Declared 'b' as int
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+[Symbol Table] State before exiting scope:
+
+--- SYMBOL TABLE ---
+Scope level 1:
+  (empty)
+Scope level 3:
+  -> b          [int]
+  -> a          [int]
+Scope level 5:
+  (empty)
+-----------------------------
+
+    [Symbol Table] is exiting scope
+ 
+
+[Symbol Table] State before exiting scope:
+
+--- SYMBOL TABLE ---
+Scope level 1:
+  -> b          [int]
+  -> a          [int]
+Scope level 3:
+  (empty)
+-----------------------------
+
+    [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+    [Symbol Table] Declared 'a' as int
+ 
+
+    [Symbol Table] Declared 'b' as int
+ 
+
+    [Symbol Table] is entering new scope
+ 
+
+[Symbol Table] State before exiting scope:
+
+--- SYMBOL TABLE ---
+Scope level 1:
+  (empty)
+Scope level 3:
+  -> b          [int]
+  -> a          [int]
+Scope level 5:
+  (empty)
+-----------------------------
+
+    [Symbol Table] is exiting scope
+ 
+
+[Symbol Table] State before exiting scope:
+
+--- SYMBOL TABLE ---
+Scope level 1:
+  -> b          [int]
+  -> a          [int]
+Scope level 3:
+  (empty)
+-----------------------------
+
+    [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] Declared 'result' as int
+ 
+
     [Symbol Table] Declared 'a' as int
  
 
@@ -9,7 +98,8 @@
  
 
 --- SYMBOL TABLE ---
-Scope level 0:
+Scope level 1:
   -> b          [int]
   -> a          [int]
+  -> result     [int]
 -----------------------------
