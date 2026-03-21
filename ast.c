@@ -149,9 +149,21 @@ static void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
         case NODE_ID:
         case NODE_INT:
         case NODE_FLOAT:
-        case NODE_CHAR:
         case NODE_STR:
             PRINT_AST("%s\n", node->value ? node->value : "");
+            break;
+
+        case NODE_CHAR:
+            /* value holds the ASCII number — print as 'c' (number) for clarity */
+            if (node->value) {
+                int ascii = atoi(node->value);
+                if (ascii >= 32 && ascii < 127)
+                    PRINT_AST("'%c' (%s)\n", (char)ascii, node->value);
+                else
+                    PRINT_AST("'\\%d' (%s)\n", ascii, node->value);
+            } else {
+                PRINT_AST("'?'\n");
+            }
             break;
 
         case NODE_PRINT:

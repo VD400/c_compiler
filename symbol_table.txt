@@ -2,19 +2,22 @@
     [Symbol Table] is entering new scope
  
 
-    [Function Table] Registered 'add' returning int (2 param(s))
+    [Symbol Table] Declared 'n' as int
  
 
-    [Function Table] Registered 'multiply' returning int (2 param(s))
+    [Symbol Table] Declared 'i' as int
+ 
+
+    [Symbol Table] Declared 'sum' as int
+ 
+
+    [Symbol Table] Declared 'isEven' as int
+ 
+
+    [Symbol Table] Declared 'grade' as char
  
 
     [Symbol Table] is entering new scope
- 
-
-    [Symbol Table] Declared 'a' as int
- 
-
-    [Symbol Table] Declared 'b' as int
  
 
     [Symbol Table] is entering new scope
@@ -26,10 +29,13 @@
 Scope level 1:
   (empty)
 Scope level 3:
-  -> b          [int]
-  -> a          [int]
+  (empty)
 Scope level 5:
-  (empty)
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
 -----------------------------
 
     [Symbol Table] is exiting scope
@@ -39,10 +45,13 @@ Scope level 5:
 
 --- SYMBOL TABLE ---
 Scope level 1:
-  -> b          [int]
-  -> a          [int]
-Scope level 3:
   (empty)
+Scope level 3:
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
 -----------------------------
 
     [Symbol Table] is exiting scope
@@ -51,10 +60,20 @@ Scope level 3:
     [Symbol Table] is entering new scope
  
 
-    [Symbol Table] Declared 'a' as int
- 
+[Symbol Table] State before exiting scope:
 
-    [Symbol Table] Declared 'b' as int
+--- SYMBOL TABLE ---
+Scope level 1:
+  (empty)
+Scope level 3:
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
+-----------------------------
+
+    [Symbol Table] is exiting scope
  
 
     [Symbol Table] is entering new scope
@@ -66,40 +85,40 @@ Scope level 3:
 Scope level 1:
   (empty)
 Scope level 3:
-  -> b          [int]
-  -> a          [int]
-Scope level 5:
-  (empty)
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
 -----------------------------
 
     [Symbol Table] is exiting scope
+ 
+
+    [Symbol Table] is entering new scope
  
 
 [Symbol Table] State before exiting scope:
 
 --- SYMBOL TABLE ---
 Scope level 1:
-  -> b          [int]
-  -> a          [int]
-Scope level 3:
   (empty)
+Scope level 3:
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
 -----------------------------
 
     [Symbol Table] is exiting scope
  
 
-    [Symbol Table] Declared 'result' as int
- 
-
-    [Symbol Table] Declared 'a' as int
- 
-
-    [Symbol Table] Declared 'b' as int
- 
-
 --- SYMBOL TABLE ---
 Scope level 1:
-  -> b          [int]
-  -> a          [int]
-  -> result     [int]
+  -> grade      [char]
+  -> isEven     [int]
+  -> sum        [int]
+  -> i          [int]
+  -> n          [int]
 -----------------------------

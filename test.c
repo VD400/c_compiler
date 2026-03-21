@@ -1,21 +1,33 @@
-int add(int a, int b) {
-    return a + b;
+int n;
+int i;
+int sum;
+int isEven;
+char grade;
+
+sum = 0;
+i = 1;
+n = 10;
+
+while (i <= n) {
+    isEven = i - (i / 2) * 2;
+
+    if (isEven == 0) {
+        sum = sum + i;
+    }
+
+    i = i + 1;
 }
 
-int multiply(int a, int b) {
-    return a * b;
+print("sum of even numbers:");
+print(sum);
+
+if (sum >= 30) {
+    grade = 'A';
+} else if (sum >= 20) {
+    grade = 'B';
+} else {
+    grade = 'C';
 }
 
-int result;
-int a;
-int b;
-print("Enter first number");
-scan(a);
-print("Enter second number");
-scan(b);
-result = add(a, b);
-print("Sum is");
-print(result);
-result = multiply(a, b);
-print("Product is");
-print(result);
+print("grade:");
+print(grade);

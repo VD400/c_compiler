@@ -76,6 +76,37 @@ FLOAT   {DIGIT}+"."{DIGIT}+
                 yylval.str = content;
                 return STR_LITERAL;
              }
+
+\'[^\']\' {
+                print_header();
+                printf("%-15s %-15s %d\n", yytext, "CHAR_LITERAL", line);
+                char buf[8];
+                snprintf(buf, sizeof(buf), "%d", (int)yytext[1]);
+                yylval.str = strdup(buf);
+                return CHAR_LITERAL;
+             }
+
+\'\\n\'  {
+                print_header();
+                printf("%-15s %-15s %d\n", yytext, "CHAR_LITERAL", line);
+                yylval.str = strdup("10");
+                return CHAR_LITERAL;
+             }
+
+\'\\t\'  {
+                print_header();
+                printf("%-15s %-15s %d\n", yytext, "CHAR_LITERAL", line);
+                yylval.str = strdup("9");
+                return CHAR_LITERAL;
+             }
+
+\'\\0\'  {
+                print_header();
+                printf("%-15s %-15s %d\n", yytext, "CHAR_LITERAL", line);
+                yylval.str = strdup("0");
+                return CHAR_LITERAL;
+             }
+
 "&&"         { print_header(); printf("%-15s %-15s %d\n",yytext,"AND",line); return AND; }
 "||"         { print_header(); printf("%-15s %-15s %d\n",yytext,"OR",line);  return OR;  }
 "!"          { print_header(); printf("%-15s %-15s %d\n",yytext,"NOT",line); return NOT; }

@@ -24,6 +24,103 @@ static char* new_label(void) {
     return strdup(buf);
 }
 
+/* -----------------------------------------------------------------------
+ * Scope-aware variable renaming table
+ *
+ * Problem: if the user declares int x in an outer scope and then int x
+ * again in an inner block, both would map to _var_x in the assembly,
+ * causing the inner assignment to overwrite the outer variable.
+ *
+ * Solution: maintain a stack of (original_name -> tac_name) mappings,
+ * one frame per block scope. When a variable is declared, if the name
+ * already exists in an outer scope, rename it to name_N (e.g. x_1).
+ * All uses of x inside the inner scope resolve to the renamed version.
+ * ----------------------------------------------------------------------- */
+#define RENAME_MAX  256   /* max variables per scope frame              */
+#define SCOPE_MAX    64   /* max nesting depth                          */
+
+typedef struct {
+    char* original;   /* name as written in source, e.g. "x"           */
+    char* tac_name;   /* name used in TAC,           e.g. "x" or "x_1" */
+} RenameEntry;
+
+typedef struct {
+    RenameEntry entries[RENAME_MAX];
+    int         sz;
+} ScopeFrame;
+
+static ScopeFrame scope_stack[SCOPE_MAX];
+static int        scope_top = 0;   /* index of current frame (0 = global) */
+static int        rename_counter = 0;
+
+static void scope_push(void) {
+    if (scope_top + 1 < SCOPE_MAX) {
+        scope_top++;
+        scope_stack[scope_top].sz = 0;
+    }
+}
+
+static void scope_pop(void) {
+    if (scope_top > 0) {
+        ScopeFrame* f = &scope_stack[scope_top];
+        for (int i = 0; i < f->sz; i++) {
+            free(f->entries[i].original);
+            free(f->entries[i].tac_name);
+        }
+        f->sz = 0;
+        scope_top--;
+    }
+}
+
+/* Register a variable declaration in the current scope.
+ * If the name already exists in any outer scope, generate a unique
+ * TAC name (name_N) so the two variables get separate memory slots.
+ * Returns the TAC name to use for this variable. */
+static const char* scope_declare(const char* name) {
+    /* Check if name exists in any scope (current or outer) */
+    int found_in_outer = 0;
+    for (int s = 0; s < scope_top; s++) {  /* don't check current frame */
+        for (int i = 0; i < scope_stack[s].sz; i++) {
+            if (strcmp(scope_stack[s].entries[i].original, name) == 0) {
+                found_in_outer = 1;
+                break;
+            }
+        }
+        if (found_in_outer) break;
+    }
+
+    char tac_name[128];
+    if (found_in_outer) {
+        /* Create a unique name so this variable gets its own memory slot */
+        snprintf(tac_name, sizeof(tac_name), "%s_%d", name, rename_counter++);
+    } else {
+        snprintf(tac_name, sizeof(tac_name), "%s", name);
+    }
+
+    /* Register in current scope frame */
+    ScopeFrame* f = &scope_stack[scope_top];
+    if (f->sz < RENAME_MAX) {
+        f->entries[f->sz].original = strdup(name);
+        f->entries[f->sz].tac_name = strdup(tac_name);
+        f->sz++;
+    }
+
+    return scope_stack[scope_top].entries[scope_stack[scope_top].sz - 1].tac_name;
+}
+
+/* Look up the TAC name for a variable use.
+ * Searches from innermost scope outward (innermost wins = shadowing). */
+static const char* scope_lookup(const char* name) {
+    for (int s = scope_top; s >= 0; s--) {
+        for (int i = 0; i < scope_stack[s].sz; i++) {
+            if (strcmp(scope_stack[s].entries[i].original, name) == 0) {
+                return scope_stack[s].entries[i].tac_name;
+            }
+        }
+    }
+    return name;  /* fallback: use as-is (should not happen after sem. analysis) */
+}
+
 TACList* create_tac_list(void) {
     TACList* list = (TACList*)malloc(sizeof(TACList));
     list->head = list->tail = NULL;
@@ -100,13 +197,15 @@ char* generate_tac(ASTNode* node, TACList* list) {
             break;
 
         case NODE_ID:
-            result = strdup(node->value);
+            result = strdup(scope_lookup(node->value));
             break;
 
-        case NODE_VAR_DECL:
-            emit_declare(list, node->data_type, node->value);
-            result = strdup(node->value);
+        case NODE_VAR_DECL: {
+            const char* tac_name = scope_declare(node->value);
+            emit_declare(list, node->data_type, tac_name);
+            result = strdup(tac_name);
             break;
+        }
 
         case NODE_BIN_OP:
 	case NODE_REL_OP:
@@ -130,9 +229,10 @@ char* generate_tac(ASTNode* node, TACList* list) {
 
         case NODE_ASSIGN: {
             char* rhs = generate_tac(node->right, list);
-            emit_assign(list, node->left->value, rhs);
+            const char* lhs = scope_lookup(node->left->value);
+            emit_assign(list, lhs, rhs);
             free(rhs);
-            result = strdup(node->left->value);
+            result = strdup(lhs);
             break;
         }
 
@@ -170,7 +270,9 @@ char* generate_tac(ASTNode* node, TACList* list) {
         }
 
         case NODE_BLOCK:
+            scope_push();
             generate_tac(node->left, list);
+            scope_pop();
             break;
 
         case NODE_PRINT: {
@@ -187,7 +289,7 @@ char* generate_tac(ASTNode* node, TACList* list) {
         }
 
         case NODE_SCAN:
-            emit_scan(list, node->left->value);
+            emit_scan(list, scope_lookup(node->left->value));
             break;
 
         case NODE_RETURN: {
@@ -221,18 +323,20 @@ char* generate_tac(ASTNode* node, TACList* list) {
          * ---------------------------------------------------------------- */
         case NODE_FUNC_DEF: {
             emit_func_begin(list, node->value);
+            scope_push();
 
-            /* Emit a declare for each parameter so the codegen knows
-               their names and can find them on the stack */
+            /* Declare each parameter in the function scope */
             ASTNode* p = node->params;
             while (p) {
-                emit_declare(list, p->data_type, p->value);
+                const char* pname = scope_declare(p->value);
+                emit_declare(list, p->data_type, pname);
                 p = p->next;
             }
 
             /* Generate the function body */
             generate_tac(node->left, list);
 
+            scope_pop();
             emit_func_end(list, node->value);
             break;
         }

@@ -92,7 +92,13 @@ char* analyze_semantics(ASTNode* node) {
                 exit(1);
             }
             char* rtype = analyze_semantics(node->right);
-            if (rtype && strcmp(sym->data_type, rtype) != 0)
+            /* Allow int <-> char assignment silently (both are integers at runtime) */
+            int compatible = 0;
+            if (!rtype) compatible = 1;
+            else if (strcmp(sym->data_type, rtype) == 0) compatible = 1;
+            else if ((strcmp(sym->data_type,"char")==0 && strcmp(rtype,"int")==0)) compatible = 1;
+            else if ((strcmp(sym->data_type,"int")==0  && strcmp(rtype,"char")==0)) compatible = 1;
+            if (!compatible)
                 fprintf(stderr,
                     "Warning: Type mismatch — assigning '%s' to '%s' variable '%s'\n",
                     rtype, sym->data_type, sym->name);

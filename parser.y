@@ -16,7 +16,7 @@ ASTNode* root;
 }
 
 %token <str> ID
-%token <str> INT_LITERAL FLOAT_LITERAL STR_LITERAL
+%token <str> INT_LITERAL FLOAT_LITERAL STR_LITERAL CHAR_LITERAL
 
 %token INT FLOAT_T CHAR_T
 %token IF ELSE WHILE
@@ -200,6 +200,7 @@ expr
     | ID              { $$ = create_node(NODE_ID,    $1, NULL, NULL); }
     | INT_LITERAL     { $$ = create_node(NODE_INT,   $1, NULL, NULL); }
     | FLOAT_LITERAL   { $$ = create_node(NODE_FLOAT, $1, NULL, NULL); }
+    | CHAR_LITERAL    { $$ = create_node(NODE_CHAR,  $1, NULL, NULL); }
 
     | ID '(' arg_list ')'
         { $$ = create_func_call_node($1, $3); }

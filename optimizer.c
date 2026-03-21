@@ -109,6 +109,12 @@ static TACList* pass_constant_folding(TACList* input) {
 
 /* -----------------------------------------------------------------------
  * PASS 2 — Copy Propagation
+ *
+ * FIX: Stop propagation at any label, goto, or if_false instruction.
+ * Copy propagation is only valid within a straight-line basic block.
+ * Crossing a label or jump boundary means we may be entering a loop
+ * or branch where the variable has a different value — propagating
+ * across that boundary causes incorrect results in loops.
  * ----------------------------------------------------------------------- */
 static TACList* pass_copy_propagation(TACList* input) {
     TACList* out   = new_list();
@@ -136,6 +142,16 @@ static TACList* pass_copy_propagation(TACList* input) {
 
             for (int j = i + 1; j < sz; j++) {
                 TACInstr* t = arr[j];
+
+                /* FIX: Stop at any control flow boundary.
+                 * Labels mean something can jump here from a loop or branch,
+                 * so the value of src may be different on re-entry.
+                 * Goto and if_false mean execution can jump away, leaving
+                 * this basic block — propagation beyond here is unsafe. */
+                if (t->op == TAC_LABEL ||
+                    t->op == TAC_GOTO  ||
+                    t->op == TAC_IF_FALSE) break;
+
                 if (t->result && strcmp(t->result, src)  == 0) break;
                 if (t->result && strcmp(t->result, dest) == 0) break;
                 if (t->arg1 && strcmp(t->arg1, dest) == 0) {
@@ -205,14 +221,24 @@ static TACList* pass_dead_code_elimination(TACList* input) {
         switch (ins->op) {
 
             case TAC_BIN_OP:
-                if (!live_has(&live, ins->result)) { dead[i]=1; count++; break; }
+                /* Only eliminate if result is a temporary — never user variables */
+                if (is_temp(ins->result) && !live_has(&live, ins->result)) {
+                    dead[i]=1; count++; break;
+                }
                 live_remove(&live, ins->result);
                 live_add(&live, ins->arg1);
                 live_add(&live, ins->arg2);
                 break;
 
             case TAC_ASSIGN:
-                if (!live_has(&live, ins->result)) { dead[i]=1; count++; break; }
+                /* Only eliminate assignments to temporaries (t0, t1, ...).
+                 * Never eliminate assignments to user-declared variables —
+                 * the backward scan cannot see across loop back-edges, so
+                 * it wrongly thinks variables like i and j are dead when
+                 * they are actually read again at the top of the loop. */
+                if (is_temp(ins->result) && !live_has(&live, ins->result)) {
+                    dead[i]=1; count++; break;
+                }
                 live_remove(&live, ins->result);
                 live_add(&live, ins->arg1);
                 break;
@@ -233,20 +259,16 @@ static TACList* pass_dead_code_elimination(TACList* input) {
                 live_add(&live, ins->result);
                 break;
 
-            /* ---- NEW: function-related instructions ---- */
             case TAC_PARAM:
-                /* argument value must be live */
                 live_add(&live, ins->arg1);
                 break;
 
             case TAC_CALL:
-                /* calls always kept — mark result live if used */
                 if (ins->result) live_add(&live, ins->result);
                 break;
 
             case TAC_FUNC_BEGIN:
             case TAC_FUNC_END:
-                /* function boundaries always kept */
                 break;
 
             case TAC_LABEL:
@@ -268,7 +290,7 @@ static TACList* pass_dead_code_elimination(TACList* input) {
 }
 
 /* -----------------------------------------------------------------------
- * Print optimized TAC — handles all instruction types including functions
+ * Print optimized TAC
  * ----------------------------------------------------------------------- */
 static void print_optimized(TACList* list) {
     PRINT_OPT("\n--- OPTIMIZED THREE ADDRESS CODE ---\n");
@@ -348,7 +370,7 @@ TACList* optimize_tac(TACList* input) {
     for (TACInstr* i = input->head;     i; i = i->next) before++;
     for (TACInstr* i = after_dce->head; i; i = i->next) after++;
 
-    PRINT_OPT("  Total: %d → %d instructions  (%d removed)\n",
+    PRINT_OPT("  Total: %d -> %d instructions  (%d removed)\n",
               before, after, before - after);
     PRINT_OPT("---------------------------\n");
 

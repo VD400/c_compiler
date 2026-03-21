@@ -19,6 +19,7 @@ typedef struct {
     char* name;
     char* asm_label;
     int   is_float;
+    int   is_char;
 } SymEntry;
 
 static SymEntry sym_table[MAX_SYMS];
@@ -52,6 +53,13 @@ static const char* sym_lookup(const char* name) {
     return NULL;
 }
 
+static int sym_is_char(const char* name) {
+    for (int i = 0; i < sym_count; i++)
+        if (strcmp(sym_table[i].name, name) == 0)
+            return sym_table[i].is_char;
+    return 0;
+}
+
 static const char* sym_register(const char* name, int is_float) {
     if (sym_lookup(name)) return sym_lookup(name);
     if (sym_count >= MAX_SYMS) {
@@ -66,6 +74,26 @@ static const char* sym_register(const char* name, int is_float) {
     sym_table[sym_count].name      = strdup(name);
     sym_table[sym_count].asm_label = strdup(label);
     sym_table[sym_count].is_float  = is_float;
+    sym_table[sym_count].is_char   = 0;
+    sym_count++;
+    return sym_table[sym_count - 1].asm_label;
+}
+
+static const char* sym_register_typed(const char* name, int is_float, int is_char) {
+    if (sym_lookup(name)) return sym_lookup(name);
+    if (sym_count >= MAX_SYMS) {
+        fprintf(stderr, "Codegen Error: symbol table full\n"); exit(1);
+    }
+    char label[64];
+    if (name[0] == 't' && isdigit((unsigned char)name[1]))
+        snprintf(label, sizeof(label), "_tmp_%s", name);
+    else
+        snprintf(label, sizeof(label), "_var_%s", name);
+
+    sym_table[sym_count].name      = strdup(name);
+    sym_table[sym_count].asm_label = strdup(label);
+    sym_table[sym_count].is_float  = is_float;
+    sym_table[sym_count].is_char   = is_char;
     sym_count++;
     return sym_table[sym_count - 1].asm_label;
 }
@@ -99,10 +127,13 @@ static int is_label_name(const char* s) {
  * Pre-scan — register every variable/temporary in .bss
  * ----------------------------------------------------------------------- */
 static void prescan(TACList* list) {
-    /* First pass: declared variables */
+    /* First pass: declared variables — track type */
     for (TACInstr* c = list->head; c; c = c->next)
-        if (c->op == TAC_DECLARE && c->result && c->arg1)
-            sym_register(c->result, strcmp(c->arg1, "float") == 0);
+        if (c->op == TAC_DECLARE && c->result && c->arg1) {
+            int is_float = strcmp(c->arg1, "float") == 0;
+            int is_char  = strcmp(c->arg1, "char")  == 0;
+            sym_register_typed(c->result, is_float, is_char);
+        }
 
     /* Second pass: register string literals from print("...") statements */
     for (TACInstr* c = list->head; c; c = c->next)
@@ -213,6 +244,7 @@ static void emit_binop_asm(const char* op) {
  * Track current function name
  * ----------------------------------------------------------------------- */
 static char current_func[128] = "main";
+static int  label_count = 0;
 
 /* -----------------------------------------------------------------------
  * Main code generator
@@ -225,8 +257,10 @@ void generate_code(TACList* list) {
     /* ---- .data section ---- */
     EMIT(".section .data\n");
     EMIT("    fmt_int:   .string \"%%d\\n\"\n");
+    EMIT("    fmt_char:  .string \"%%c\\n\"\n");
     EMIT("    fmt_float: .string \"%%f\\n\"\n");
     EMIT("    fmt_scan:  .string \"%%d\"\n");
+    EMIT("    fmt_scanc: .string \" %%c\"\n");
     for (int i = 0; i < str_count; i++)
         EMIT("    %s: .string \"%s\\n\"\n",
              str_table[i].label, str_table[i].text);
@@ -345,12 +379,38 @@ void generate_code(TACList* list) {
                     EMIT("    call    printf\n");
                     EMIT("    addl    $4, %%esp\n");
                 } else {
-                    EMIT("    # print %s\n", cur->arg1 ? cur->arg1 : "");
+                    const char* varname = cur->arg1 ? cur->arg1 : "";
+                    int use_char_fmt = sym_is_char(varname);
+                    EMIT("    # print %s%s\n", varname,
+                         use_char_fmt ? " (char)" : "");
                     load_to_eax(cur->arg1);
-                    EMIT("    pushl   %%eax\n");
-                    EMIT("    pushl   $fmt_int\n");
-                    EMIT("    call    printf\n");
-                    EMIT("    addl    $8, %%esp\n");
+                    if (use_char_fmt) {
+                        /* Runtime check: if value is printable ASCII (32-126)
+                         * print as char, otherwise print as integer.
+                         * This handles cases like d = 'Z' - 'A' = 25
+                         * which is non-printable and should show as 25. */
+                        EMIT("    cmpl    $32, %%eax\n");
+                        EMIT("    jl      _print_as_int_%d\n", label_count);
+                        EMIT("    cmpl    $126, %%eax\n");
+                        EMIT("    jg      _print_as_int_%d\n", label_count);
+                        EMIT("    pushl   %%eax\n");
+                        EMIT("    pushl   $fmt_char\n");
+                        EMIT("    call    printf\n");
+                        EMIT("    addl    $8, %%esp\n");
+                        EMIT("    jmp     _print_done_%d\n", label_count);
+                        EMIT("_print_as_int_%d:\n", label_count);
+                        EMIT("    pushl   %%eax\n");
+                        EMIT("    pushl   $fmt_int\n");
+                        EMIT("    call    printf\n");
+                        EMIT("    addl    $8, %%esp\n");
+                        EMIT("_print_done_%d:\n", label_count);
+                        label_count++;
+                    } else {
+                        EMIT("    pushl   %%eax\n");
+                        EMIT("    pushl   $fmt_int\n");
+                        EMIT("    call    printf\n");
+                        EMIT("    addl    $8, %%esp\n");
+                    }
                 }
                 break;
 
@@ -361,8 +421,9 @@ void generate_code(TACList* list) {
                     sym_register(cur->result, 0);
                     lbl = sym_lookup(cur->result);
                 }
+                int scan_char = sym_is_char(cur->result);
                 EMIT("    pushl   $%s\n", lbl);
-                EMIT("    pushl   $fmt_scan\n");
+                EMIT("    pushl   $%s\n", scan_char ? "fmt_scanc" : "fmt_scan");
                 EMIT("    call    scanf\n");
                 EMIT("    addl    $8, %%esp\n");
                 break;

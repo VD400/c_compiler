@@ -58,25 +58,26 @@ extern int yydebug;
     INT_LITERAL = 259,             /* INT_LITERAL  */
     FLOAT_LITERAL = 260,           /* FLOAT_LITERAL  */
     STR_LITERAL = 261,             /* STR_LITERAL  */
-    INT = 262,                     /* INT  */
-    FLOAT_T = 263,                 /* FLOAT_T  */
-    CHAR_T = 264,                  /* CHAR_T  */
-    IF = 265,                      /* IF  */
-    ELSE = 266,                    /* ELSE  */
-    WHILE = 267,                   /* WHILE  */
-    RETURN = 268,                  /* RETURN  */
-    BREAK = 269,                   /* BREAK  */
-    CONTINUE = 270,                /* CONTINUE  */
-    PRINT = 271,                   /* PRINT  */
-    SCAN = 272,                    /* SCAN  */
-    EQ = 273,                      /* EQ  */
-    NE = 274,                      /* NE  */
-    LE = 275,                      /* LE  */
-    GE = 276,                      /* GE  */
-    AND = 277,                     /* AND  */
-    OR = 278,                      /* OR  */
-    NOT = 279,                     /* NOT  */
-    LOWER_THAN_ELSE = 280          /* LOWER_THAN_ELSE  */
+    CHAR_LITERAL = 262,            /* CHAR_LITERAL  */
+    INT = 263,                     /* INT  */
+    FLOAT_T = 264,                 /* FLOAT_T  */
+    CHAR_T = 265,                  /* CHAR_T  */
+    IF = 266,                      /* IF  */
+    ELSE = 267,                    /* ELSE  */
+    WHILE = 268,                   /* WHILE  */
+    RETURN = 269,                  /* RETURN  */
+    BREAK = 270,                   /* BREAK  */
+    CONTINUE = 271,                /* CONTINUE  */
+    PRINT = 272,                   /* PRINT  */
+    SCAN = 273,                    /* SCAN  */
+    EQ = 274,                      /* EQ  */
+    NE = 275,                      /* NE  */
+    LE = 276,                      /* LE  */
+    GE = 277,                      /* GE  */
+    AND = 278,                     /* AND  */
+    OR = 279,                      /* OR  */
+    NOT = 280,                     /* NOT  */
+    LOWER_THAN_ELSE = 281          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -90,7 +91,7 @@ union YYSTYPE
     char*    str;
     ASTNode* node;
 
-#line 94 "parser.tab.h"
+#line 95 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
