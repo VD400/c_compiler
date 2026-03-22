@@ -17,12 +17,14 @@ typedef struct Scope {
 } Scope;
 
 static Scope* current_scope = NULL;
+static int    scope_depth   = 0;  
 
 void push_scope(void) {
     Scope* s = (Scope*)malloc(sizeof(Scope));
     s->symbols = NULL;
     s->outer   = current_scope;
     current_scope = s;
+    scope_depth++;
     PRINT_SYM("\n    [Symbol Table] is entering new scope\n \n");
 }
 
@@ -32,6 +34,7 @@ void pop_scope(void) {
     print_symbol_table();
     Scope* old = current_scope;
     current_scope = current_scope->outer;
+    scope_depth--;
     Symbol* s = old->symbols;
     while (s) {
         Symbol* t = s; s = s->next;
@@ -76,30 +79,35 @@ Symbol* lookup_symbol(char* name) {
 
 void print_symbol_table(void) {
     PRINT_SYM("\n--- SYMBOL TABLE ---\n");
+
+    #define MAX_FRAMES 64
+    Scope* frames[MAX_FRAMES];
+    int    nframes = 0;
     Scope* s = current_scope;
-    int depth = 0;
-    while (s) {
-        PRINT_SYM("Scope level %d:\n", depth++);
-        Symbol* sym = s->symbols;
-        if (!sym) PRINT_SYM("  (empty)\n");
+    while (s && nframes < MAX_FRAMES) {
+        frames[nframes++] = s;
+        s = s->outer;
+    }
+
+    int level = 0;
+    for (int idx = nframes - 1; idx >= 0; idx--) {
+        if (!frames[idx]->symbols) continue;  
+        int lv = level++;                     
+        PRINT_SYM("Scope level %d:\n", lv);
+        Symbol* sym = frames[idx]->symbols;
         while (sym) {
             PRINT_SYM("  -> %-10s [%s]\n", sym->name, sym->data_type);
             sym = sym->next;
         }
-        s = s->outer;
     }
+    if (level == 0) PRINT_SYM("  (no variables declared)\n");
     PRINT_SYM("-----------------------------\n");
 }
 
-/* -----------------------------------------------------------------------
- * Function registry — a simple global linked list of FuncSymbol entries.
- * Functions are never "out of scope" so no stack is needed.
- * ----------------------------------------------------------------------- */
 static FuncSymbol* func_table = NULL;
 
 void add_function(char* name, char* return_type,
                   ParamInfo* params, int param_count) {
-    /* Check for duplicate definition */
     FuncSymbol* cur = func_table;
     while (cur) {
         if (strcmp(cur->name, name) == 0) {

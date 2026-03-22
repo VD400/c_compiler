@@ -44,9 +44,6 @@ int main()
 
     printf("Starting Parsing...\n");
 
-    // initialise global scope
-    push_scope();
-
     if (yyparse() != 0) {
         printf("Parsing failed.\n");
         return 1;
@@ -78,7 +75,6 @@ int main()
     printf("\n--- CODE GENERATION ---\n");
     generate_code(optimized);
 
-    // Close all files
     fclose(token_file);
     fclose(ast_file);
     fclose(sym_file);

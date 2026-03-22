@@ -1,13 +1,3 @@
-/* ast_func.c — add these functions to your existing ast.c
- *
- * INSTRUCTIONS:
- *   Copy the three constructor functions below into ast.c (before the
- *   closing #endif or at the end of the file).
- *   Then add the two new case blocks into print_ast_node()'s switch.
- *
- * OR simply replace ast.c entirely with this file — it includes all the
- * original functions plus the new ones.
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,9 +7,7 @@
 extern FILE* ast_file;
 #define PRINT_AST(...) do { fprintf(stdout, __VA_ARGS__); fprintf(ast_file, __VA_ARGS__); } while(0)
 
-/* -----------------------------------------------------------------------
- * Original constructors (unchanged)
- * ----------------------------------------------------------------------- */
+
 ASTNode* create_node(NodeType type, char* value, ASTNode* left, ASTNode* right) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!node) { fprintf(stderr,"Error: malloc failed\n"); exit(1); }
@@ -67,23 +55,14 @@ ASTNode* create_block_node(ASTNode* stmt_list) {
     return create_node(NODE_BLOCK, NULL, stmt_list, NULL);
 }
 
-/* -----------------------------------------------------------------------
- * NEW constructors for function support
- * ----------------------------------------------------------------------- */
 
-/* A single parameter:  int a  →  NODE_PARAM, value="a", data_type="int" */
 ASTNode* create_param_node(char* data_type, char* name) {
     ASTNode* node   = create_node(NODE_PARAM, name, NULL, NULL);
     node->data_type = strdup(data_type);
     return node;
 }
 
-/* Function definition:  int add(int a, int b) { body }
- *   value      = "add"
- *   data_type  = "int"   (return type)
- *   params     = linked list of NODE_PARAM nodes
- *   left       = body block
- */
+
 ASTNode* create_func_def_node(char* return_type, char* name,
                                ASTNode* params, ASTNode* body) {
     ASTNode* node   = create_node(NODE_FUNC_DEF, name, body, NULL);
@@ -92,19 +71,14 @@ ASTNode* create_func_def_node(char* return_type, char* name,
     return node;
 }
 
-/* Function call:  add(x, y)
- *   value = "add"
- *   args  = linked list of argument expression nodes
- */
+
 ASTNode* create_func_call_node(char* name, ASTNode* args) {
     ASTNode* node = create_node(NODE_FUNC_CALL, name, NULL, NULL);
     node->args    = args;
     return node;
 }
 
-/* -----------------------------------------------------------------------
- * Printer helpers (same as original, copied here for completeness)
- * ----------------------------------------------------------------------- */
+
 static void print_ast_node(ASTNode* node, const char* prefix, int is_last);
 
 static void print_children(ASTNode* list, const char* prefix, int last_sibling) {
@@ -154,7 +128,7 @@ static void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
             break;
 
         case NODE_CHAR:
-            /* value holds the ASCII number — print as 'c' (number) for clarity */
+           
             if (node->value) {
                 int ascii = atoi(node->value);
                 if (ascii >= 32 && ascii < 127)
@@ -215,11 +189,11 @@ static void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
             if (node->left) print_children(node->left, new_prefix, 1);
             break;
 
-        /* ---- NEW: function definition ---- */
+      
         case NODE_FUNC_DEF:
             PRINT_AST("FUNC_DEF %s %s\n",
                       node->data_type ? node->data_type : "?", node->value);
-            /* Print parameters */
+          
             if (node->params) {
                 PRINT_AST("%s├── PARAMS\n", new_prefix);
                 char pp[2048];
@@ -234,11 +208,11 @@ static void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
                     p = p->next;
                 }
             }
-            /* Print body */
+            
             if (node->left) print_ast_node(node->left, new_prefix, 1);
             break;
 
-        /* ---- NEW: function call ---- */
+        
         case NODE_FUNC_CALL:
             PRINT_AST("FUNC_CALL %s\n", node->value ? node->value : "?");
             if (node->args) {

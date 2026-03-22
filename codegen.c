@@ -10,9 +10,7 @@
     fprintf(asm_file, __VA_ARGS__); \
 } while(0)
 
-/* -----------------------------------------------------------------------
- * Symbol map — variables and temporaries → .bss labels
- * ----------------------------------------------------------------------- */
+
 #define MAX_SYMS 512
 
 typedef struct {
@@ -25,9 +23,7 @@ typedef struct {
 static SymEntry sym_table[MAX_SYMS];
 static int      sym_count = 0;
 
-/* -----------------------------------------------------------------------
- * String constant table — for print("hello") style statements
- * ----------------------------------------------------------------------- */
+
 #define MAX_STRS 64
 typedef struct { char* text; char* label; } StrEntry;
 static StrEntry str_table[MAX_STRS];
@@ -98,9 +94,7 @@ static const char* sym_register_typed(const char* name, int is_float, int is_cha
     return sym_table[sym_count - 1].asm_label;
 }
 
-/* -----------------------------------------------------------------------
- * Helpers
- * ----------------------------------------------------------------------- */
+
 static int is_number(const char* s) {
     if (!s || !*s) return 0;
     int i = 0, dots = 0;
@@ -123,11 +117,9 @@ static int is_label_name(const char* s) {
     return s[1] != '\0';
 }
 
-/* -----------------------------------------------------------------------
- * Pre-scan — register every variable/temporary in .bss
- * ----------------------------------------------------------------------- */
+
 static void prescan(TACList* list) {
-    /* First pass: declared variables — track type */
+    
     for (TACInstr* c = list->head; c; c = c->next)
         if (c->op == TAC_DECLARE && c->result && c->arg1) {
             int is_float = strcmp(c->arg1, "float") == 0;
@@ -135,12 +127,12 @@ static void prescan(TACList* list) {
             sym_register_typed(c->result, is_float, is_char);
         }
 
-    /* Second pass: register string literals from print("...") statements */
+   
     for (TACInstr* c = list->head; c; c = c->next)
         if (c->op == TAC_PRINT && c->result && !c->arg1)
             str_register(c->result);
 
-    /* Third pass: everything else (temps, etc.) */
+    
     for (TACInstr* c = list->head; c; c = c->next) {
         if (c->result
             && c->op != TAC_LABEL && c->op != TAC_GOTO
@@ -166,9 +158,7 @@ static void prescan(TACList* list) {
     }
 }
 
-/* -----------------------------------------------------------------------
- * Load / store helpers
- * ----------------------------------------------------------------------- */
+
 static void load_to_eax(const char* op) {
     if (!op) return;
     if (is_number(op)) {
@@ -200,9 +190,7 @@ static void store_from_eax(const char* name) {
     EMIT("    movl    %%eax, %s\n", lbl);
 }
 
-/* -----------------------------------------------------------------------
- * Binary operator emission
- * ----------------------------------------------------------------------- */
+
 static void emit_binop_asm(const char* op) {
     if (!op) return;
     if      (!strcmp(op,"+"))  { EMIT("    addl    %%ebx, %%eax\n"); }
@@ -240,21 +228,16 @@ static void emit_binop_asm(const char* op) {
     else EMIT("    # unknown op: %s\n", op);
 }
 
-/* -----------------------------------------------------------------------
- * Track current function name
- * ----------------------------------------------------------------------- */
+
 static char current_func[128] = "main";
 static int  label_count = 0;
 
-/* -----------------------------------------------------------------------
- * Main code generator
- * ----------------------------------------------------------------------- */
 void generate_code(TACList* list) {
     prescan(list);
 
     fprintf(stdout, "\n--- X86 ASSEMBLY OUTPUT ---\n\n");
 
-    /* ---- .data section ---- */
+    
     EMIT(".section .data\n");
     EMIT("    fmt_int:   .string \"%%d\\n\"\n");
     EMIT("    fmt_char:  .string \"%%c\\n\"\n");
@@ -266,22 +249,22 @@ void generate_code(TACList* list) {
              str_table[i].label, str_table[i].text);
     EMIT("\n");
 
-    /* ---- .bss section ---- */
+   
     EMIT(".section .bss\n");
     for (int i = 0; i < sym_count; i++)
         EMIT("    %s: .space 4\n", sym_table[i].asm_label);
     EMIT("\n");
 
-    /* ---- .text section ---- */
+    
     EMIT(".section .text\n");
     EMIT(".globl main\n");
 
-    /* Check if there are any function definitions */
+   
     int has_func = 0;
     for (TACInstr* c = list->head; c; c = c->next)
         if (c->op == TAC_FUNC_BEGIN) { has_func = 1; break; }
 
-    /* No functions — emit main: prologue immediately */
+   
     if (!has_func) {
         EMIT("main:\n");
         EMIT("    pushl   %%ebp\n");
@@ -289,12 +272,10 @@ void generate_code(TACList* list) {
         EMIT("\n");
     }
 
-    /* Track whether we have emitted main: yet */
+   
     int main_emitted = has_func ? 0 : 1;
 
-    /* ----------------------------------------------------------------
-     * Translate instructions
-     * ---------------------------------------------------------------- */
+    
     for (TACInstr* cur = list->head; cur; cur = cur->next) {
 
         switch (cur->op) {
@@ -313,8 +294,7 @@ void generate_code(TACList* list) {
                 EMIT("    movl    %%ebp, %%esp\n");
                 EMIT("    popl    %%ebp\n");
                 EMIT("    ret\n\n");
-                /* After the last function definition, emit main: for
-                 * the global statements that follow */
+                
                 if (!main_emitted) {
                     int next_is_func = (cur->next &&
                                         cur->next->op == TAC_FUNC_BEGIN);
@@ -385,10 +365,7 @@ void generate_code(TACList* list) {
                          use_char_fmt ? " (char)" : "");
                     load_to_eax(cur->arg1);
                     if (use_char_fmt) {
-                        /* Runtime check: if value is printable ASCII (32-126)
-                         * print as char, otherwise print as integer.
-                         * This handles cases like d = 'Z' - 'A' = 25
-                         * which is non-printable and should show as 25. */
+                       
                         EMIT("    cmpl    $32, %%eax\n");
                         EMIT("    jl      _print_as_int_%d\n", label_count);
                         EMIT("    cmpl    $126, %%eax\n");
@@ -461,7 +438,7 @@ void generate_code(TACList* list) {
         EMIT("\n");
     }
 
-    /* Final epilogue for main */
+  
     EMIT("    movl    $0, %%eax\n");
     EMIT("    movl    %%ebp, %%esp\n");
     EMIT("    popl    %%ebp\n");

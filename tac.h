@@ -4,25 +4,6 @@
 #include <stdio.h>
 #include "ast.h"
 
-/* -----------------------------------------------------------------------
- * TAC Instruction Types
- *
- *  ASSIGN      :  result = arg1
- *  BIN_OP      :  result = arg1 op arg2
- *  LABEL       :  result:
- *  GOTO        :  goto result
- *  IF_FALSE    :  if_false arg1 goto result
- *  PRINT       :  print arg1
- *  SCAN        :  scan result
- *  RETURN      :  return arg1
- *  DECLARE     :  declare type result
- *
- *  NEW — function support:
- *  FUNC_BEGIN  :  func_begin name       (marks start of function body)
- *  FUNC_END    :  func_end  name        (marks end of function body)
- *  PARAM       :  param arg1            (push one argument before a call)
- *  CALL        :  result = call name n  (call function, n args, result = retval)
- * ----------------------------------------------------------------------- */
 typedef enum {
     TAC_ASSIGN,
     TAC_BIN_OP,
@@ -39,7 +20,7 @@ typedef enum {
     TAC_CALL
 } TACOpType;
 
-/* A single Three-Address instruction */
+
 typedef struct TACInstr {
     TACOpType   op;
     char*       result;

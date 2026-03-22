@@ -1,78 +1,347 @@
 
 --- ABSTRACT SYNTAX TREE ---
 PROGRAM
-├── DECLARATION int n
+├── DECLARATION int a
+├── DECLARATION int b
+├── DECLARATION int c
 ├── DECLARATION int i
-├── DECLARATION int sum
-├── DECLARATION int isEven
+├── DECLARATION int result
 ├── DECLARATION char grade
+├── DECLARATION char ch
 ├── ASSIGN
-│   ├── sum
+│   ├── a
+│   └── 15
+├── ASSIGN
+│   ├── b
+│   └── 4
+├── ASSIGN
+│   ├── c
 │   └── 0
+├── PRINT
+├── ASSIGN
+│   ├── c
+│   └── (+)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (-)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (*)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (/)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── PRINT
+├── ASSIGN
+│   ├── c
+│   └── (>)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (<)
+│       ├── a
+│       └── b
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (>=)
+│       ├── a
+│       └── 15
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (<=)
+│       ├── a
+│       └── 14
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (==)
+│       ├── a
+│       └── 15
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (!=)
+│       ├── a
+│       └── 15
+├── PRINT
+│   └── c
+├── PRINT
+├── ASSIGN
+│   ├── c
+│   └── (&&)
+│       ├── (>)
+│       │   ├── a
+│       │   └── 10
+│       └── (>)
+│           ├── b
+│           └── 2
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (||)
+│       ├── (<)
+│       │   ├── a
+│       │   └── 10
+│       └── (>)
+│           ├── b
+│           └── 2
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (!)
+│       ├── (==)
+│       │   ├── a
+│       │   └── 15
+├── PRINT
+│   └── c
+├── PRINT
+├── ASSIGN
+│   ├── c
+│   └── (+)
+│       ├── 2
+│       └── (*)
+│           ├── 3
+│           └── 4
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (*)
+│       ├── (+)
+│       │   ├── 2
+│       │   └── 3
+│       └── 4
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (-)
+│       ├── (-)
+│       │   ├── 10
+│       │   └── 4
+│       └── 2
+├── PRINT
+│   └── c
+├── PRINT
+├── ASSIGN
+│   ├── c
+│   └── (+)
+│       ├── 6
+│       └── 9
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (/)
+│       ├── 100
+│       └── 5
+├── PRINT
+│   └── c
+├── ASSIGN
+│   ├── c
+│   └── (>)
+│       ├── 7
+│       └── 3
+├── PRINT
+│   └── c
+├── PRINT
 ├── ASSIGN
 │   ├── i
 │   └── 1
 ├── ASSIGN
-│   ├── n
-│   └── 10
+│   ├── result
+│   └── 0
 ├── WHILE
 │   ├── CONDITION
 │   │   └── (<=)
 │   │       ├── i
-│   │       └── n
+│   │       └── 5
 │   └── BLOCK
 │       ├── ASSIGN
-│       │   ├── isEven
-│       │   └── (-)
-│       │       ├── i
-│       │       └── (*)
-│       │           ├── (/)
-│       │           │   ├── i
-│       │           │   └── 2
-│       │           └── 2
-│       ├── IF
-│       │   ├── CONDITION
-│       │   │   └── (==)
-│       │   │       ├── isEven
-│       │   │       └── 0
-│       │   └── BLOCK
-│       │       └── ASSIGN
-│       │           ├── sum
-│       │           └── (+)
-│       │               ├── sum
-│       │               └── i
+│       │   ├── result
+│       │   └── (+)
+│       │       ├── result
+│       │       └── i
 │       └── ASSIGN
 │           ├── i
 │           └── (+)
 │               ├── i
 │               └── 1
 ├── PRINT
+│   └── result
 ├── PRINT
-│   └── sum
+├── ASSIGN
+│   ├── i
+│   └── 1
+├── WHILE
+│   ├── CONDITION
+│   │   └── (<=)
+│   │       ├── i
+│   │       └── 10
+│   └── BLOCK
+│       ├── IF
+│       │   ├── CONDITION
+│       │   │   └── (==)
+│       │   │       ├── i
+│       │   │       └── 3
+│       │   └── BLOCK
+│       │       ├── ASSIGN
+│       │       │   ├── i
+│       │       │   └── (+)
+│       │       │       ├── i
+│       │       │       └── 1
+│       │       └── CONTINUE
+│       ├── IF
+│       │   ├── CONDITION
+│       │   │   └── (==)
+│       │   │       ├── i
+│       │   │       └── 6
+│       │   └── BLOCK
+│       │       └── BREAK
+│       ├── PRINT
+│       │   └── i
+│       └── ASSIGN
+│           ├── i
+│           └── (+)
+│               ├── i
+│               └── 1
+├── PRINT
+├── ASSIGN
+│   ├── result
+│   └── 75
 ├── IF
 │   ├── CONDITION
 │   │   └── (>=)
-│   │       ├── sum
-│   │       └── 30
+│   │       ├── result
+│   │       └── 90
 │   ├── BLOCK
-│   │   └── ASSIGN
-│   │       ├── grade
-│   │       └── 'A' (65)
+│   │   └── PRINT
+│   │       └── 1
 │   └── ELSE
 │       └── IF
 │           ├── CONDITION
 │           │   └── (>=)
-│           │       ├── sum
-│           │       └── 20
+│           │       ├── result
+│           │       └── 75
 │           ├── BLOCK
-│           │   └── ASSIGN
-│           │       ├── grade
-│           │       └── 'B' (66)
+│           │   └── PRINT
+│           │       └── 2
 │           └── ELSE
-│               └── BLOCK
-│                   └── ASSIGN
-│                       ├── grade
-│                       └── 'C' (67)
+│               └── IF
+│                   ├── CONDITION
+│                   │   └── (>=)
+│                   │       ├── result
+│                   │       └── 60
+│                   ├── BLOCK
+│                   │   └── PRINT
+│                   │       └── 3
+│                   └── ELSE
+│                       └── BLOCK
+│                           └── PRINT
+│                               └── 4
 ├── PRINT
+├── ASSIGN
+│   ├── ch
+│   └── 'A' (65)
+├── PRINT
+│   └── ch
+├── ASSIGN
+│   ├── ch
+│   └── 'z' (122)
+├── PRINT
+│   └── ch
+├── ASSIGN
+│   ├── ch
+│   └── (+)
+│       ├── 'A' (65)
+│       └── 1
+├── PRINT
+│   └── ch
+├── ASSIGN
+│   ├── c
+│   └── (-)
+│       ├── 'Z' (90)
+│       └── 'A' (65)
+├── PRINT
+│   └── c
+├── PRINT
+├── ASSIGN
+│   ├── a
+│   └── 100
+├── BLOCK
+│   ├── DECLARATION int a
+│   ├── ASSIGN
+│   │   ├── a
+│   │   └── 999
+│   └── PRINT
+│       └── a
+├── PRINT
+│   └── a
+├── PRINT
+├── ASSIGN
+│   ├── i
+│   └── 1
+├── WHILE
+│   ├── CONDITION
+│   │   └── (<=)
+│   │       ├── i
+│   │       └── 3
+│   └── BLOCK
+│       ├── ASSIGN
+│       │   ├── b
+│       │   └── 1
+│       ├── WHILE
+│       │   ├── CONDITION
+│       │   │   └── (<=)
+│       │   │       ├── b
+│       │   │       └── 3
+│       │   └── BLOCK
+│       │       ├── ASSIGN
+│       │       │   ├── result
+│       │       │   └── (*)
+│       │       │       ├── i
+│       │       │       └── b
+│       │       ├── PRINT
+│       │       │   └── result
+│       │       └── ASSIGN
+│       │           ├── b
+│       │           └── (+)
+│       │               ├── b
+│       │               └── 1
+│       └── ASSIGN
+│           ├── i
+│           └── (+)
+│               ├── i
+│               └── 1
+├── PRINT
+├── SCAN
+│   └── a
+├── PRINT
+│   └── a
 └── PRINT
-    └── grade

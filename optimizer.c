@@ -10,9 +10,6 @@
     fprintf(opt_file, __VA_ARGS__); \
 } while(0)
 
-/* -----------------------------------------------------------------------
- * Helpers
- * ----------------------------------------------------------------------- */
 static int is_number(const char* s) {
     if (!s || *s == '\0') return 0;
     int i = 0, has_dot = 0;
@@ -53,9 +50,6 @@ static void append(TACList* list, TACInstr* instr) {
     else             { list->tail->next = instr; list->tail = instr; }
 }
 
-/* -----------------------------------------------------------------------
- * PASS 1 — Constant Folding
- * ----------------------------------------------------------------------- */
 static TACList* pass_constant_folding(TACList* input) {
     TACList* out   = new_list();
     int      count = 0;
@@ -107,15 +101,6 @@ static TACList* pass_constant_folding(TACList* input) {
     return out;
 }
 
-/* -----------------------------------------------------------------------
- * PASS 2 — Copy Propagation
- *
- * FIX: Stop propagation at any label, goto, or if_false instruction.
- * Copy propagation is only valid within a straight-line basic block.
- * Crossing a label or jump boundary means we may be entering a loop
- * or branch where the variable has a different value — propagating
- * across that boundary causes incorrect results in loops.
- * ----------------------------------------------------------------------- */
 static TACList* pass_copy_propagation(TACList* input) {
     TACList* out   = new_list();
     int      count = 0;
@@ -131,9 +116,9 @@ static TACList* pass_copy_propagation(TACList* input) {
 
     for (int i = 0; i < sz; i++) {
         TACInstr* ins = arr[i];
+
         if (ins->op == TAC_ASSIGN
             && ins->result && ins->arg1
-            && !is_number(ins->arg1)
             && is_temp(ins->result)) {
 
             const char* dest = ins->result;
@@ -143,17 +128,16 @@ static TACList* pass_copy_propagation(TACList* input) {
             for (int j = i + 1; j < sz; j++) {
                 TACInstr* t = arr[j];
 
-                /* FIX: Stop at any control flow boundary.
-                 * Labels mean something can jump here from a loop or branch,
-                 * so the value of src may be different on re-entry.
-                 * Goto and if_false mean execution can jump away, leaving
-                 * this basic block — propagation beyond here is unsafe. */
+                /* Stop at control flow boundaries */
                 if (t->op == TAC_LABEL ||
                     t->op == TAC_GOTO  ||
                     t->op == TAC_IF_FALSE) break;
 
-                if (t->result && strcmp(t->result, src)  == 0) break;
+                /* Stop if source is reassigned */
+                if (!is_number(src) && t->result && strcmp(t->result, src) == 0) break;
+                /* Stop if temp dest is reassigned */
                 if (t->result && strcmp(t->result, dest) == 0) break;
+
                 if (t->arg1 && strcmp(t->arg1, dest) == 0) {
                     free(t->arg1); t->arg1 = strdup(src); propagated = 1;
                 }
@@ -175,9 +159,7 @@ static TACList* pass_copy_propagation(TACList* input) {
     return out;
 }
 
-/* -----------------------------------------------------------------------
- * PASS 3 — Dead Code Elimination
- * ----------------------------------------------------------------------- */
+
 #define LIVE_CAP 256
 typedef struct { char* names[LIVE_CAP]; int sz; } LiveSet;
 
@@ -221,7 +203,6 @@ static TACList* pass_dead_code_elimination(TACList* input) {
         switch (ins->op) {
 
             case TAC_BIN_OP:
-                /* Only eliminate if result is a temporary — never user variables */
                 if (is_temp(ins->result) && !live_has(&live, ins->result)) {
                     dead[i]=1; count++; break;
                 }
@@ -231,11 +212,6 @@ static TACList* pass_dead_code_elimination(TACList* input) {
                 break;
 
             case TAC_ASSIGN:
-                /* Only eliminate assignments to temporaries (t0, t1, ...).
-                 * Never eliminate assignments to user-declared variables —
-                 * the backward scan cannot see across loop back-edges, so
-                 * it wrongly thinks variables like i and j are dead when
-                 * they are actually read again at the top of the loop. */
                 if (is_temp(ins->result) && !live_has(&live, ins->result)) {
                     dead[i]=1; count++; break;
                 }
@@ -289,9 +265,6 @@ static TACList* pass_dead_code_elimination(TACList* input) {
     return out;
 }
 
-/* -----------------------------------------------------------------------
- * Print optimized TAC
- * ----------------------------------------------------------------------- */
 static void print_optimized(TACList* list) {
     PRINT_OPT("\n--- OPTIMIZED THREE ADDRESS CODE ---\n");
     for (TACInstr* cur = list->head; cur; cur = cur->next) {
@@ -356,25 +329,26 @@ static void print_optimized(TACList* list) {
     PRINT_OPT("------------------------------------\n");
 }
 
-/* -----------------------------------------------------------------------
- * Public entry point
- * ----------------------------------------------------------------------- */
 TACList* optimize_tac(TACList* input) {
     PRINT_OPT("\n--- OPTIMIZATION PASSES ---\n");
 
-    TACList* after_cf  = pass_constant_folding(input);
-    TACList* after_cp  = pass_copy_propagation(after_cf);
-    TACList* after_dce = pass_dead_code_elimination(after_cp);
+    TACList* p1 = pass_constant_folding(input);
+    TACList* p2 = pass_copy_propagation(p1);
+    TACList* p3 = pass_dead_code_elimination(p2);
+
+    TACList* p4 = pass_constant_folding(p3);
+    TACList* p5 = pass_copy_propagation(p4);
+    TACList* p6 = pass_dead_code_elimination(p5);
 
     int before = 0, after = 0;
-    for (TACInstr* i = input->head;     i; i = i->next) before++;
-    for (TACInstr* i = after_dce->head; i; i = i->next) after++;
+    for (TACInstr* i = input->head; i; i = i->next) before++;
+    for (TACInstr* i = p6->head;    i; i = i->next) after++;
 
     PRINT_OPT("  Total: %d -> %d instructions  (%d removed)\n",
               before, after, before - after);
     PRINT_OPT("---------------------------\n");
 
-    print_optimized(after_dce);
+    print_optimized(p6);
 
-    return after_dce;
+    return p6;
 }

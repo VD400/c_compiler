@@ -24,24 +24,13 @@ static char* new_label(void) {
     return strdup(buf);
 }
 
-/* -----------------------------------------------------------------------
- * Scope-aware variable renaming table
- *
- * Problem: if the user declares int x in an outer scope and then int x
- * again in an inner block, both would map to _var_x in the assembly,
- * causing the inner assignment to overwrite the outer variable.
- *
- * Solution: maintain a stack of (original_name -> tac_name) mappings,
- * one frame per block scope. When a variable is declared, if the name
- * already exists in an outer scope, rename it to name_N (e.g. x_1).
- * All uses of x inside the inner scope resolve to the renamed version.
- * ----------------------------------------------------------------------- */
-#define RENAME_MAX  256   /* max variables per scope frame              */
-#define SCOPE_MAX    64   /* max nesting depth                          */
+
+#define RENAME_MAX  256   
+#define SCOPE_MAX    64   
 
 typedef struct {
-    char* original;   /* name as written in source, e.g. "x"           */
-    char* tac_name;   /* name used in TAC,           e.g. "x" or "x_1" */
+    char* original;   
+    char* tac_name;   
 } RenameEntry;
 
 typedef struct {
@@ -50,7 +39,7 @@ typedef struct {
 } ScopeFrame;
 
 static ScopeFrame scope_stack[SCOPE_MAX];
-static int        scope_top = 0;   /* index of current frame (0 = global) */
+static int        scope_top = 0;  
 static int        rename_counter = 0;
 
 static void scope_push(void) {
@@ -72,14 +61,11 @@ static void scope_pop(void) {
     }
 }
 
-/* Register a variable declaration in the current scope.
- * If the name already exists in any outer scope, generate a unique
- * TAC name (name_N) so the two variables get separate memory slots.
- * Returns the TAC name to use for this variable. */
+
 static const char* scope_declare(const char* name) {
-    /* Check if name exists in any scope (current or outer) */
+   
     int found_in_outer = 0;
-    for (int s = 0; s < scope_top; s++) {  /* don't check current frame */
+    for (int s = 0; s < scope_top; s++) { 
         for (int i = 0; i < scope_stack[s].sz; i++) {
             if (strcmp(scope_stack[s].entries[i].original, name) == 0) {
                 found_in_outer = 1;
@@ -91,13 +77,13 @@ static const char* scope_declare(const char* name) {
 
     char tac_name[128];
     if (found_in_outer) {
-        /* Create a unique name so this variable gets its own memory slot */
+       
         snprintf(tac_name, sizeof(tac_name), "%s_%d", name, rename_counter++);
     } else {
         snprintf(tac_name, sizeof(tac_name), "%s", name);
     }
 
-    /* Register in current scope frame */
+    
     ScopeFrame* f = &scope_stack[scope_top];
     if (f->sz < RENAME_MAX) {
         f->entries[f->sz].original = strdup(name);
@@ -108,8 +94,7 @@ static const char* scope_declare(const char* name) {
     return scope_stack[scope_top].entries[scope_stack[scope_top].sz - 1].tac_name;
 }
 
-/* Look up the TAC name for a variable use.
- * Searches from innermost scope outward (innermost wins = shadowing). */
+
 static const char* scope_lookup(const char* name) {
     for (int s = scope_top; s >= 0; s--) {
         for (int i = 0; i < scope_stack[s].sz; i++) {
@@ -118,7 +103,7 @@ static const char* scope_lookup(const char* name) {
             }
         }
     }
-    return name;  /* fallback: use as-is (should not happen after sem. analysis) */
+    return name;  
 }
 
 TACList* create_tac_list(void) {
@@ -160,7 +145,7 @@ static void emit_func_begin(TACList* l, const char* nm)                         
 static void emit_func_end  (TACList* l, const char* nm)                            { emit(l, make_instr(TAC_FUNC_END,   nm,   NULL,NULL, NULL)); }
 static void emit_param    (TACList* l, const char* v)                              { emit(l, make_instr(TAC_PARAM,      NULL, v,   NULL, NULL)); }
 
-/* loop label stack */
+
 #define LOOP_MAX 64
 static struct { char* start; char* end; } loop_stack[LOOP_MAX];
 static int loop_depth = 0;
@@ -179,9 +164,7 @@ static void pop_loop(void) {
 static const char* cur_loop_end(void)   { return loop_stack[loop_depth-1].end; }
 static const char* cur_loop_start(void) { return loop_stack[loop_depth-1].start; }
 
-/* -----------------------------------------------------------------------
- * Main recursive generator
- * ----------------------------------------------------------------------- */
+
 char* generate_tac(ASTNode* node, TACList* list) {
     if (!node) return NULL;
 
@@ -277,8 +260,7 @@ char* generate_tac(ASTNode* node, TACList* list) {
 
         case NODE_PRINT: {
             if (node->value && !node->left) {
-                /* print("string literal") — value holds the string text */
-                /* Use result field to carry the string, arg1 stays NULL */
+                
                 emit(list, make_instr(TAC_PRINT, node->value, NULL, NULL, NULL));
             } else {
                 char* v = generate_tac(node->left, list);
@@ -311,21 +293,12 @@ char* generate_tac(ASTNode* node, TACList* list) {
             generate_tac(node->left, list);
             break;
 
-        /* ----------------------------------------------------------------
-         * FUNCTION DEFINITION
-         *
-         * Emits:
-         *   func_begin add
-         *   declare int a      ← one per parameter
-         *   declare int b
-         *   <body TAC>
-         *   func_end add
-         * ---------------------------------------------------------------- */
+       
         case NODE_FUNC_DEF: {
             emit_func_begin(list, node->value);
             scope_push();
 
-            /* Declare each parameter in the function scope */
+           
             ASTNode* p = node->params;
             while (p) {
                 const char* pname = scope_declare(p->value);
@@ -333,7 +306,7 @@ char* generate_tac(ASTNode* node, TACList* list) {
                 p = p->next;
             }
 
-            /* Generate the function body */
+           
             generate_tac(node->left, list);
 
             scope_pop();
@@ -341,18 +314,9 @@ char* generate_tac(ASTNode* node, TACList* list) {
             break;
         }
 
-        /* ----------------------------------------------------------------
-         * FUNCTION CALL
-         *
-         * Emits:
-         *   param x       ← one per argument, left to right
-         *   param y
-         *   t0 = call add 2
-         *
-         * Returns the temp that holds the return value.
-         * ---------------------------------------------------------------- */
+       
         case NODE_FUNC_CALL: {
-            /* Count and emit each argument */
+            
             int argc = 0;
             ASTNode* arg = node->args;
             while (arg) {
@@ -363,7 +327,7 @@ char* generate_tac(ASTNode* node, TACList* list) {
                 arg = arg->next;
             }
 
-            /* Emit the call — result goes in a fresh temp */
+           
             char* ret_tmp = new_temp();
             char  argc_str[16];
             snprintf(argc_str, sizeof(argc_str), "%d", argc);
@@ -383,9 +347,7 @@ char* generate_tac(ASTNode* node, TACList* list) {
     return result;
 }
 
-/* -----------------------------------------------------------------------
- * Pretty printer
- * ----------------------------------------------------------------------- */
+
 void print_tac(TACList* list) {
     PRINT_TAC("\n--- THREE ADDRESS CODE ---\n");
     for (TACInstr* i = list->head; i; i = i->next) {

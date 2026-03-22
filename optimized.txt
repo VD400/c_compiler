@@ -1,51 +1,177 @@
 
 --- OPTIMIZATION PASSES ---
-  [Constant Folding]    0 instruction(s) folded
-  [Copy Propagation]    0 copy instruction(s) eliminated
+  [Constant Folding]    8 instruction(s) folded
+  [Copy Propagation]    8 copy instruction(s) eliminated
   [Dead Code Elim]      0 dead instruction(s) removed
-  Total: 41 -> 41 instructions  (0 removed)
+  [Constant Folding]    3 instruction(s) folded
+  [Copy Propagation]    3 copy instruction(s) eliminated
+  [Dead Code Elim]      0 dead instruction(s) removed
+  Total: 175 -> 164 instructions  (11 removed)
 ---------------------------
 
 --- OPTIMIZED THREE ADDRESS CODE ---
-    declare int n
+    declare int a
+    declare int b
+    declare int c
     declare int i
-    declare int sum
-    declare int isEven
+    declare int result
     declare char grade
-    sum = 0
+    declare char ch
+    a = 15
+    b = 4
+    c = 0
+    print "=== ARITHMETIC ==="
+    t0 = a + b
+    c = t0
+    print c
+    t1 = a - b
+    c = t1
+    print c
+    t2 = a * b
+    c = t2
+    print c
+    t3 = a / b
+    c = t3
+    print c
+    print "=== RELATIONAL ==="
+    t4 = a > b
+    c = t4
+    print c
+    t5 = a < b
+    c = t5
+    print c
+    t6 = a >= 15
+    c = t6
+    print c
+    t7 = a <= 14
+    c = t7
+    print c
+    t8 = a == 15
+    c = t8
+    print c
+    t9 = a != 15
+    c = t9
+    print c
+    print "=== LOGICAL ==="
+    t10 = a > 10
+    t11 = b > 2
+    t12 = t10 && t11
+    c = t12
+    print c
+    t13 = a < 10
+    t14 = b > 2
+    t15 = t13 || t14
+    c = t15
+    print c
+    t16 = a == 15
+    t17 = t16 == 0
+    c = t17
+    print c
+    print "=== PRECEDENCE ==="
+    c = 14
+    print c
+    c = 20
+    print c
+    c = 4
+    print c
+    print "=== CONSTANT FOLDING ==="
+    c = 15
+    print c
+    c = 20
+    print c
+    c = 1
+    print c
+    print "=== WHILE LOOP ==="
     i = 1
-    n = 10
+    result = 0
 L0:
-    t0 = i <= n
-    if_false t0 goto L1
-    t1 = i / 2
-    t2 = t1 * 2
-    t3 = i - t2
-    isEven = t3
-    t4 = isEven == 0
-    if_false t4 goto L2
-    t5 = sum + i
-    sum = t5
-L2:
-    t6 = i + 1
-    i = t6
+    t27 = i <= 5
+    if_false t27 goto L1
+    t28 = result + i
+    result = t28
+    t29 = i + 1
+    i = t29
     goto L0
 L1:
-    print "sum of even numbers:"
-    print sum
-    t7 = sum >= 30
-    if_false t7 goto L4
-    grade = 65
-    goto L5
+    print result
+    print "=== BREAK AND CONTINUE ==="
+    i = 1
+L2:
+    t30 = i <= 10
+    if_false t30 goto L3
+    t31 = i == 3
+    if_false t31 goto L4
+    t32 = i + 1
+    i = t32
+    goto L2
 L4:
-    t8 = sum >= 20
-    if_false t8 goto L6
-    grade = 66
-    goto L7
+    t33 = i == 6
+    if_false t33 goto L6
+    goto L3
 L6:
-    grade = 67
-L7:
-L5:
-    print "grade:"
-    print grade
+    print i
+    t34 = i + 1
+    i = t34
+    goto L2
+L3:
+    print "=== IF ELSE CHAIN ==="
+    result = 75
+    t35 = result >= 90
+    if_false t35 goto L8
+    print 1
+    goto L9
+L8:
+    t36 = result >= 75
+    if_false t36 goto L10
+    print 2
+    goto L11
+L10:
+    t37 = result >= 60
+    if_false t37 goto L12
+    print 3
+    goto L13
+L12:
+    print 4
+L13:
+L11:
+L9:
+    print "=== CHAR TYPE ==="
+    ch = 65
+    print ch
+    ch = 122
+    print ch
+    ch = 66
+    print ch
+    c = 25
+    print c
+    print "=== SCOPING ==="
+    a = 100
+    declare int a_0
+    a_0 = 999
+    print a_0
+    print a
+    print "=== NESTED LOOPS ==="
+    i = 1
+L14:
+    t40 = i <= 3
+    if_false t40 goto L15
+    b = 1
+L16:
+    t41 = b <= 3
+    if_false t41 goto L17
+    t42 = i * b
+    result = t42
+    print result
+    t43 = b + 1
+    b = t43
+    goto L16
+L17:
+    t44 = i + 1
+    i = t44
+    goto L14
+L15:
+    print "=== SCAN ==="
+    scan a
+    print a
+    print "=== DONE ==="
 ------------------------------------
