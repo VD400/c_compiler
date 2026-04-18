@@ -8,8 +8,7 @@ cd /tmp
 rm -rf minivd_temp_install
 
 echo "[1/4] Fetching source code..."
-git clone -q https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git minivd_temp_install
-
+git clone -q https://github.com/VD400/c_compiler.git minivd_temp_install
 cd minivd_temp_install
 
 echo "[2/4] Building compiler core..."
