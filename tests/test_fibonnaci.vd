@@ -1,0 +1,19 @@
+int a;
+int b;
+int c;
+int i;
+
+a = 0;
+b = 1;
+
+print(a);
+print(b);
+
+i = 2;
+while (i < 10) {
+    c = a + b;
+    print(c);
+    a = b;
+    b = c;
+    i = i + 1;
+}

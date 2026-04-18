@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "symbol_table.h"
 #include "tac.h"
 #include "ast.h"
 
@@ -273,7 +274,20 @@ char* generate_tac(ASTNode* node, TACList* list) {
         case NODE_SCAN:
             emit_scan(list, scope_lookup(node->left->value));
             break;
-
+	
+	case NODE_TYPE: {
+            const char* var_name = node->left->value;
+            
+            Symbol* sym = lookup_symbol((char*)var_name);
+            
+            if (sym != NULL) {
+                emit(list, make_instr(TAC_PRINT, sym->data_type, NULL, NULL, NULL));
+            } else {
+                printf("Error: Variable %s undeclared.\n", var_name);
+            }
+            break;
+        }
+	
         case NODE_RETURN: {
             char* v = generate_tac(node->left, list);
             emit_return(list, v);

@@ -1,0 +1,32 @@
+int a = 1;
+int b = 0;
+
+if (a && b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a || b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (!a) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (!b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a && !b) {
+    print(1);
+} else {
+    print(0);
+}

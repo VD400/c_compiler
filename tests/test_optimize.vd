@@ -1,0 +1,6 @@
+int complex_math;
+
+complex_math = (10 * 5) + (100 / 2) + (20 * 2) - (80 / 4);
+
+print("Optimized final result:");
+print(complex_math);

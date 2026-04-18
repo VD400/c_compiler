@@ -149,7 +149,9 @@ static void print_ast_node(ASTNode* node, const char* prefix, int is_last) {
             PRINT_AST("SCAN\n");
             print_ast_node(node->left, new_prefix, 1);
             break;
-
+	
+	case NODE_TYPE: printf("Type Check\n"); break;
+	
         case NODE_RETURN:
             PRINT_AST("RETURN\n");
             if (node->left) print_ast_node(node->left, new_prefix, 1);

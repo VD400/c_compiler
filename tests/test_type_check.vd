@@ -1,0 +1,13 @@
+int my_number;
+float my_decimal;
+char my_letter;
+
+my_number = 100;
+my_decimal = 3.14;
+my_letter = 'V';
+
+print("Checking data types natively:");
+
+type(my_number);
+type(my_decimal);
+type(my_letter);

@@ -43,6 +43,7 @@ FLOAT   {DIGIT}+"."{DIGIT}+
 
 "print"      { print_header(); printf("%-15s %-15s %d\n",yytext,"PRINT",line); return PRINT; }
 "scan"       { print_header(); printf("%-15s %-15s %d\n",yytext,"SCAN",line); return SCAN; }
+"type"       { print_header(); printf("%-15s %-15s %d\n",yytext,"TYPE",line); return TYPE; }
 
 "=="         { print_header(); printf("%-15s %-15s %d\n",yytext,"EQ",line); return EQ; }
 "!="         { print_header(); printf("%-15s %-15s %d\n",yytext,"NE",line); return NE; }

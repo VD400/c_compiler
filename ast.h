@@ -26,7 +26,8 @@ typedef enum {
    
     NODE_FUNC_DEF,   
     NODE_FUNC_CALL, 
-    NODE_PARAM       
+    NODE_PARAM,
+    NODE_TYPE     
 } NodeType;
 
 typedef struct ASTNode {

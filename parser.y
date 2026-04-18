@@ -21,7 +21,7 @@ ASTNode* root;
 %token INT FLOAT_T CHAR_T
 %token IF ELSE WHILE
 %token RETURN BREAK CONTINUE
-%token PRINT SCAN
+%token PRINT SCAN TYPE
 
 %token EQ NE LE GE AND OR NOT
  
@@ -109,7 +109,12 @@ param
 
 stmt_list
     : stmt stmt_list
-        { $1->next = $2; $$ = $1; }
+        {
+            ASTNode* cur = $1;
+            while(cur->next) cur = cur->next;
+            cur->next = $2;
+            $$ = $1;
+        }
     | stmt
         { $$ = $1; }
     ;
@@ -119,7 +124,15 @@ stmt
     | assignment  ';'   { $$ = $1; }
     | while_stmt        { $$ = $1; }
     | if_stmt           { $$ = $1; }
-
+    
+    
+    | TYPE '(' ID ')' ';'
+        { 
+            ASTNode* id_node = create_node(NODE_ID, $3, NULL, NULL);
+            $$ = create_node(NODE_TYPE, NULL, id_node, NULL); 
+        }
+        
+        
     | PRINT '(' expr ')' ';'
         { $$ = create_node(NODE_PRINT, NULL, $3, NULL); }
 
@@ -160,6 +173,27 @@ declaration
     : INT     ID { $$ = create_var_node("int",   $2); }
     | FLOAT_T ID { $$ = create_var_node("float", $2); }
     | CHAR_T  ID { $$ = create_var_node("char",  $2); }
+    | INT     ID '=' expr { 
+          ASTNode* decl = create_var_node("int", $2);
+          ASTNode* id = create_node(NODE_ID, $2, NULL, NULL);
+          ASTNode* assign = create_node(NODE_ASSIGN, "=", id, $4);
+          decl->next = assign;
+          $$ = decl;
+      }
+    | FLOAT_T ID '=' expr { 
+          ASTNode* decl = create_var_node("float", $2);
+          ASTNode* id = create_node(NODE_ID, $2, NULL, NULL);
+          ASTNode* assign = create_node(NODE_ASSIGN, "=", id, $4);
+          decl->next = assign;
+          $$ = decl;
+      }
+    | CHAR_T ID '=' expr { 
+          ASTNode* decl = create_var_node("char", $2);
+          ASTNode* id = create_node(NODE_ID, $2, NULL, NULL);
+          ASTNode* assign = create_node(NODE_ASSIGN, "=", id, $4);
+          decl->next = assign;
+          $$ = decl;
+      }
     ;
 
 assignment

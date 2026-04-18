@@ -1,0 +1,9 @@
+int getMax() {
+    int m;
+    m = 999;
+    return m;
+}
+
+int result;
+result = getMax();
+print(result);

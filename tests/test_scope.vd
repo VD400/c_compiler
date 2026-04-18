@@ -1,0 +1,11 @@
+int x;
+x = 100;
+
+if(x){
+    int x;
+    x = 999;
+    print("Inside the if scope value of x : ");
+    print(x);
+}
+print("Outside the if block value of x : ");
+print(x);

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo "Usage: minivd <input_file.c> [-o output_name]"
+    exit 1
+fi
+
+INPUT_FILE=$1
+OUTPUT_NAME="a.out"
+
+if [ "$2" == "-o" ] && [ -n "$3" ]; then
+    OUTPUT_NAME=$3
+fi
+
+minivd-core < "$INPUT_FILE"
+
+if [ -f "output.s" ]; then
+    echo "Assembling and linking..."
+    gcc -m32 output.s -o "$OUTPUT_NAME" -no-pie
+    
+    rm output.s 
+    
+    echo "Success! Executable created as: $OUTPUT_NAME"
+else
+    echo "Compilation failed during the compiler phases."
+    exit 1
+fi

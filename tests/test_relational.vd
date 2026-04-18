@@ -1,0 +1,38 @@
+int a = 10;
+int b = 20;
+
+if (a < b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a > b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a == b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a != b) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a <= 10) {
+    print(1);
+} else {
+    print(0);
+}
+
+if (a >= 11) {
+    print(1);
+} else {
+    print(0);
+}

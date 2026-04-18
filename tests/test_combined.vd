@@ -1,0 +1,78 @@
+int get_default_bonus() {
+    int bonus;
+    bonus = 5;
+    return bonus;
+}
+
+int compute_sum(int n) {
+    int s;
+    int i;
+    
+    s = 0;
+    i = 1;
+    
+    while (i <= n) {
+        if (i < 0 || i == 0) {
+            break;
+        } else {
+            s = s + i;
+            i = i + 1;
+            continue;
+        }
+    }
+    return s;
+}
+
+int n;
+int total_sum;
+char grade;
+float dummy_val;
+
+dummy_val = 1.5;
+
+print("Enter positive number n:");
+scan(n);
+
+print("The type of variable n is: ");
+type(n);
+print("The type of variable grade is: ");
+type(grade);
+
+if (!(n > 0)) {
+    print("Error number must be positive");
+} else {
+    int bonus;
+    bonus = get_default_bonus();
+    
+    total_sum = compute_sum(n);
+    total_sum = total_sum + bonus;
+    
+    print("Total sum with bonus is:");
+    print(total_sum);
+    
+    if (total_sum >= 90 && total_sum <= 10000) {
+        char a_grade;
+        a_grade = 'A';
+        grade = a_grade;
+        print("Excellent Grade A");
+    } else {
+        if (total_sum >= 75) {
+            char b_grade;
+            b_grade = 'B';
+            grade = b_grade;
+        } else {
+            if (total_sum >= 50) {
+                char c_grade;
+                c_grade = 'C';
+                grade = c_grade;
+            } else {
+                char f_grade;
+                f_grade = 'F';
+                grade = f_grade;
+            }
+        }
+    }
+}
+
+print("Assigned Grade is:");
+print(grade);

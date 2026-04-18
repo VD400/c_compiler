@@ -34,7 +34,7 @@ int main()
     sym_file   = fopen("symbol_table.txt", "w");
     tac_file   = fopen("tac.txt",          "w");
     opt_file   = fopen("optimized.txt",    "w");
-    asm_file   = fopen("output.asm",       "w");
+    asm_file   = fopen("output.s",       "w");
 
     if (!token_file || !ast_file || !sym_file ||
         !tac_file   || !opt_file || !asm_file) {
