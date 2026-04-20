@@ -8,7 +8,7 @@ Because this compiler generates 32-bit x86 assembly, your Linux/WSL system must 
 
 ## Installation
 
-### Method 1: One-Command Automated Install (Recommended)
+### One-Command Automated Install
 You can install the compiler directly from your terminal using this single command:
 ```bash
 curl -sL https://raw.githubusercontent.com/VD400/c_compiler/main/install.sh | bash
